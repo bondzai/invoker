@@ -1,75 +1,104 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
+
+	"github.com/robfig/cron"
 )
 
-func main() {
-	// Create a channel to signal task execution
-	taskChannel := make(chan bool)
+type TaskType int
 
-	// Start interval task in a separate goroutine
-	go intervalTask(taskChannel, 5*time.Second)
+const (
+	IntervalTask TaskType = iota
+	CronTask
+)
 
-	// Start cron task in a separate goroutine
-	go cronTask(taskChannel, "0 0 * * *")
-
-	// Handle graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	// Signal tasks to stop
-	close(taskChannel)
-
-	fmt.Println("Shutting down gracefully")
-	time.Sleep(2 * time.Second) // Give some time for tasks to finish gracefully
+type Task struct {
+	ID       int
+	Type     TaskType
+	Interval time.Duration
+	CronExpr string
+	// Add more task-specific fields as needed
 }
 
-func intervalTask(ch <-chan bool, interval time.Duration) {
+func main() {
+	tasks := []Task{
+		{ID: 1, Type: IntervalTask, Interval: 5 * time.Second},
+		{ID: 2, Type: CronTask, CronExpr: "*/10 * * * *"}, // Run every 10 seconds
+		// Add more tasks as needed
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+
+	// Start a goroutine for each task
+	for _, task := range tasks {
+		wg.Add(1)
+		go startTask(ctx, task, &wg)
+	}
+
+	// Handle interrupt signal to gracefully stop the program
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-signalCh
+		fmt.Println("Received interrupt signal. Stopping the program...")
+		cancel()
+	}()
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+}
+
+func startTask(ctx context.Context, task Task, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	switch task.Type {
+	case IntervalTask:
+		startIntervalTask(ctx, task)
+	case CronTask:
+		startCronTask(ctx, task)
+	}
+}
+
+func startIntervalTask(ctx context.Context, task Task) {
+	ticker := time.NewTicker(task.Interval)
+	defer ticker.Stop()
+
 	for {
 		select {
-		case <-ch:
-			fmt.Println("Interval task stopped")
-			return
-		default:
-			fmt.Println("Executing interval task")
-			// Your interval task logic goes here
+		case <-ticker.C:
+			fmt.Printf("Interval Task %d: Triggered at %v\n", task.ID, time.Now())
+			// Add your interval task-specific logic here
 
-			time.Sleep(interval)
+		case <-ctx.Done():
+			fmt.Printf("Interval Task %d: Stopping...\n", task.ID)
+			return
 		}
 	}
 }
 
-func cronTask(ch <-chan bool, cronExpr string) {
-	cronSchedule, err := time.Parse("cron", cronExpr)
+func startCronTask(ctx context.Context, task Task) {
+	c := cron.New()
+	defer c.Stop()
+
+	err := c.AddFunc(task.CronExpr, func() {
+		fmt.Printf("Cron Task %d: Triggered at %v\n", task.ID, time.Now())
+		// Add your cron task-specific logic here
+	})
 	if err != nil {
-		fmt.Println("Error parsing cron expression:", err)
+		fmt.Printf("Cron Task %d: Error adding cron expression: %v\n", task.ID, err)
 		return
 	}
 
-	for {
-		select {
-		case <-ch:
-			fmt.Println("Cron task stopped")
-			return
-		default:
-			now := time.Now()
-			nextRun := cronSchedule
-			if now.After(nextRun) {
-				nextRun = cronSchedule.Add(cronSchedule.Sub(now))
-			}
+	c.Start()
 
-			sleepTime := nextRun.Sub(now)
-			fmt.Printf("Waiting for %s until next cron task\n", sleepTime)
-			time.Sleep(sleepTime)
-
-			fmt.Println("Executing cron task")
-			// Your cron task logic goes here
-		}
-	}
+	<-ctx.Done()
+	fmt.Printf("Cron Task %d: Stopping...\n", task.ID)
 }
