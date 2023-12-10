@@ -3,12 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
+	signalhandler "github.com/bondzai/invoker/internal/signalhandler"
 	"github.com/robfig/cron/v3"
 )
 
@@ -26,44 +24,58 @@ type Task struct {
 	CronExpr string
 }
 
+type ShutdownManager interface {
+	Shutdown()
+}
+
+type GracefulShutdownManager struct {
+	cancelFunc context.CancelFunc
+}
+
+func NewGracefulShutdownManager() *GracefulShutdownManager {
+	_, cancel := context.WithCancel(context.Background())
+	return &GracefulShutdownManager{
+		cancelFunc: cancel,
+	}
+}
+
+func (m *GracefulShutdownManager) Shutdown() {
+	m.cancelFunc()
+}
+
 func main() {
 	tasks := []Task{
 		{ID: 1, Type: IntervalTask, Interval: 5 * time.Second},
-		{ID: 2, Type: CronTask, CronExpr: "*/10 * * * *"}, // Run every 10 seconds
+		{ID: 2, Type: CronTask, CronExpr: "*/10 * * * *"},
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	shutdownManager := NewGracefulShutdownManager()
+	signalHandler := signalhandler.NewSignalHandler()
+	signalHandler.Start()
+
 	var wg sync.WaitGroup
 
 	for _, task := range tasks {
 		wg.Add(1)
-		go startTask(ctx, task, &wg)
+		go startTask(context.Background(), task, &wg, shutdownManager)
 	}
 
-	// Handle interrupt signal to gracefully stop the program
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-signalCh
-		fmt.Println("Received interrupt signal. Stopping the program...")
-		cancel()
-	}()
-
 	wg.Wait()
+	shutdownManager.Shutdown()
 }
 
-func startTask(ctx context.Context, task Task, wg *sync.WaitGroup) {
+func startTask(ctx context.Context, task Task, wg *sync.WaitGroup, shutdownManager ShutdownManager) {
 	defer wg.Done()
 
 	switch task.Type {
 	case IntervalTask:
-		startIntervalTask(ctx, task)
+		startIntervalTask(ctx, task, shutdownManager)
 	case CronTask:
-		startCronTask(ctx, task)
+		startCronTask(ctx, task, shutdownManager)
 	}
 }
 
-func startIntervalTask(ctx context.Context, task Task) {
+func startIntervalTask(ctx context.Context, task Task, shutdownManager ShutdownManager) {
 	ticker := time.NewTicker(task.Interval)
 	defer ticker.Stop()
 
@@ -80,7 +92,7 @@ func startIntervalTask(ctx context.Context, task Task) {
 	}
 }
 
-func startCronTask(ctx context.Context, task Task) {
+func startCronTask(ctx context.Context, task Task, shutdownManager ShutdownManager) {
 	c := cron.New()
 	defer c.Stop()
 
