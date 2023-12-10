@@ -13,16 +13,14 @@ import (
 const (
 	numTasks  = 10000
 	httpPort  = 8080
-	httpRoute = "/"
+	httpRoute = "/ping"
 )
 
 func main() {
-	// Generate mock tasks
 	tasks := mock.GenerateTasks(numTasks)
 
 	var wg sync.WaitGroup
 
-	// Task managers for different types of tasks
 	taskManagers := map[task.TaskType]task.TaskManager{
 		task.IntervalTask: &task.IntervalTaskManager{},
 		task.CronTask:     &task.CronTaskManager{},
@@ -31,7 +29,7 @@ func main() {
 	// Start HTTP server in a goroutine
 	go func() {
 		http.HandleFunc(httpRoute, func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, "HTTP server is running")
+			fmt.Fprint(w, "Invoker is running...")
 		})
 
 		err := http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
@@ -40,7 +38,7 @@ func main() {
 		}
 	}()
 
-	// Start tasks
+	// Start tasks invoke loop
 	for _, t := range tasks {
 		wg.Add(1)
 		go func(task task.Task) {
@@ -49,6 +47,5 @@ func main() {
 		}(t)
 	}
 
-	// Wait for tasks to finish
 	wg.Wait()
 }
