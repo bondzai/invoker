@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"sync"
 
+	"github.com/bondzai/invoker/internal/gracefulshutdown"
 	"github.com/bondzai/invoker/internal/mock"
-	"github.com/bondzai/invoker/internal/shutdown"
-	"github.com/bondzai/invoker/internal/signalhandler"
 	"github.com/bondzai/invoker/internal/task"
 )
 
@@ -19,20 +17,22 @@ const (
 )
 
 func main() {
+	// Generate mock tasks
 	tasks := mock.GenerateTasks(numTasks)
 
-	shutdownManager := shutdown.NewGracefulShutdownManager()
-	signalHandler := signalhandler.NewSignalHandler()
-	signalHandler.Start()
+	// Create a graceful shutdown manager
+	shutdownManager := gracefulshutdown.NewManager()
+	shutdownManager.StartSignalHandling()
 
 	var wg sync.WaitGroup
 
+	// Task managers for different types of tasks
 	taskManagers := map[task.TaskType]task.TaskManager{
 		task.IntervalTask: &task.IntervalTaskManager{},
 		task.CronTask:     &task.CronTaskManager{},
 	}
 
-	// Start HTTP server
+	// Start HTTP server in a goroutine
 	go func() {
 		http.HandleFunc(httpRoute, func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "HTTP server is running")
@@ -50,7 +50,7 @@ func main() {
 		wg.Add(1)
 		go func(task task.Task) {
 			defer wg.Done()
-			taskManagers[task.Type].Start(context.Background(), task, &wg, shutdownManager)
+			taskManagers[task.Type].Start(shutdownManager.Context(), task, shutdownManager.WaitGroup(), shutdownManager)
 		}(t)
 	}
 
