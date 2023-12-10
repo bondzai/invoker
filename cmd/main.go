@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	numTasks    = 200
+	numTasks    = 20000
 	numTasksMux sync.Mutex
 )
 
@@ -77,13 +77,35 @@ func main() {
 			numTasks = requestBody.NumTasks
 			numTasksMux.Unlock()
 
+			newTasks := mock.GenerateTasks(numTasks)
+			for _, t := range newTasks {
+				wg.Add(1)
+				go func(task task.Task) {
+					defer wg.Done()
+					taskManagers[task.Type].Start(ctx, task, &wg)
+				}(t)
+			}
+
 			fmt.Fprintf(w, "numTasks updated to %d", requestBody.NumTasks)
+		})
+
+		http.HandleFunc("/getNumTasks", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+
+			numTasksMux.Lock()
+			currentNumTasks := numTasks
+			numTasksMux.Unlock()
+
+			fmt.Fprintf(w, "Current number of tasks: %d", currentNumTasks)
 		})
 
 		err := http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
 		if err != nil {
 			fmt.Printf("Error starting HTTP server: %v\n", err)
-			cancel() // Trigger shutdown on HTTP server error
+			cancel()
 		}
 	}()
 
