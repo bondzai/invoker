@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	numTasks    = 20000
+	numTasks    = 200000
 	numTasksMux sync.Mutex
 )
 
