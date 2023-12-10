@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/bondzai/invoker/internal/mock"
@@ -10,7 +12,11 @@ import (
 	"github.com/bondzai/invoker/internal/task"
 )
 
-const numTasks = 10000
+const (
+	numTasks  = 10000
+	httpPort  = 8080
+	httpRoute = "/"
+)
 
 func main() {
 	tasks := mock.GenerateTasks(numTasks)
@@ -26,11 +32,31 @@ func main() {
 		task.CronTask:     &task.CronTaskManager{},
 	}
 
-	for _, task := range tasks {
+	// Start HTTP server
+	go func() {
+		http.HandleFunc(httpRoute, func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, "HTTP server is running")
+		})
+
+		err := http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
+		if err != nil {
+			fmt.Printf("Error starting HTTP server: %v\n", err)
+			shutdownManager.Shutdown() // Trigger shutdown on HTTP server error
+		}
+	}()
+
+	// Start tasks
+	for _, t := range tasks {
 		wg.Add(1)
-		go taskManagers[task.Type].Start(context.Background(), task, &wg, shutdownManager)
+		go func(task task.Task) {
+			defer wg.Done()
+			taskManagers[task.Type].Start(context.Background(), task, &wg, shutdownManager)
+		}(t)
 	}
 
+	// Wait for tasks to finish
 	wg.Wait()
+
+	// Shutdown HTTP server
 	shutdownManager.Shutdown()
 }
