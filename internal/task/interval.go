@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bondzai/invoker/internal/shutdown"
+	"github.com/bondzai/invoker/internal/gracefulshutdown"
 )
 
 type IntervalTaskManager struct{}
 
-func (m *IntervalTaskManager) Start(ctx context.Context, task Task, wg *sync.WaitGroup, shutdownManager shutdown.ShutdownManager) {
+func (m *IntervalTaskManager) Start(ctx context.Context, task Task, wg *sync.WaitGroup, shutdownManager gracefulshutdown.Manager) {
 	defer wg.Done()
 
 	ticker := time.NewTicker(task.Interval)

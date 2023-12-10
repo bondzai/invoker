@@ -50,7 +50,7 @@ func main() {
 		wg.Add(1)
 		go func(task task.Task) {
 			defer wg.Done()
-			taskManagers[task.Type].Start(shutdownManager.Context(), task, shutdownManager.WaitGroup(), shutdownManager)
+			taskManagers[task.Type].Start(shutdownManager.Context(), task, shutdownManager.WaitGroup(), gracefulshutdown.Manager{})
 		}(t)
 	}
 
