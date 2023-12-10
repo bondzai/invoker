@@ -24,20 +24,17 @@ type Task struct {
 	Type     TaskType
 	Interval time.Duration
 	CronExpr string
-	// Add more task-specific fields as needed
 }
 
 func main() {
 	tasks := []Task{
 		{ID: 1, Type: IntervalTask, Interval: 5 * time.Second},
 		{ID: 2, Type: CronTask, CronExpr: "*/10 * * * *"}, // Run every 10 seconds
-		// Add more tasks as needed
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
-	// Start a goroutine for each task
 	for _, task := range tasks {
 		wg.Add(1)
 		go startTask(ctx, task, &wg)
@@ -52,7 +49,6 @@ func main() {
 		cancel()
 	}()
 
-	// Wait for all goroutines to finish
 	wg.Wait()
 }
 
