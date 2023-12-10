@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	numTasks  = 10000
+	numTasks  = 100000
 	httpPort  = 8080
 	httpRoute = "/ping"
 )
@@ -45,8 +45,6 @@ func main() {
 
 		// Wait for ongoing tasks to complete
 		wg.Wait()
-
-		// Additional cleanup if needed...
 
 		fmt.Println("Shutdown complete.")
 		os.Exit(0)
