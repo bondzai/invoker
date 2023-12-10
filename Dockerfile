@@ -9,12 +9,13 @@ COPY go.sum .
 
 # Download and install Go dependencies
 RUN go mod download
+RUN go mod tidy
 
 # Copy the rest of the application source code
 COPY . .
 
 # Build the Go application
-RUN go build -o invoker ./cmd
+RUN CGO_ENABLED=0 GOOS=linux go build -o invoker ./cmd
 
 # Stage 2: Create a minimal production image
 FROM alpine:latest
