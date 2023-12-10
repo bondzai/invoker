@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,9 +14,13 @@ import (
 )
 
 const (
-	numTasks  = 100000
 	httpPort  = 8080
 	httpRoute = "/ping"
+)
+
+var (
+	numTasks    = 200
+	numTasksMux sync.Mutex
 )
 
 func main() {
@@ -50,6 +55,29 @@ func main() {
 	go func() {
 		http.HandleFunc(httpRoute, func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "Invoker is running...")
+		})
+
+		http.HandleFunc("/setNumTasks", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPut {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+
+			var requestBody struct {
+				NumTasks int `json:"numTasks"`
+			}
+
+			err := json.NewDecoder(r.Body).Decode(&requestBody)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Error decoding JSON: %v", err), http.StatusBadRequest)
+				return
+			}
+
+			numTasksMux.Lock()
+			numTasks = requestBody.NumTasks
+			numTasksMux.Unlock()
+
+			fmt.Fprintf(w, "numTasks updated to %d", requestBody.NumTasks)
 		})
 
 		err := http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
