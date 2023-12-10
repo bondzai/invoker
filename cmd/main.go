@@ -28,7 +28,6 @@ func main() {
 		task.CronTask:     &task.CronTaskManager{},
 	}
 
-	// Create a context with cancellation function
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Handle graceful shutdown using a goroutine
@@ -36,14 +35,11 @@ func main() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt)
 
-		// Wait for a signal
 		<-sigCh
 
-		// Perform cleanup and initiate shutdown
 		fmt.Println("\nReceived interrupt signal. Initiating graceful shutdown...")
 		cancel()
 
-		// Wait for ongoing tasks to complete
 		wg.Wait()
 
 		fmt.Println("Shutdown complete.")
