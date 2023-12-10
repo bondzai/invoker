@@ -1,11 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
 
-	"github.com/bondzai/invoker/internal/gracefulshutdown"
 	"github.com/bondzai/invoker/internal/mock"
 	"github.com/bondzai/invoker/internal/task"
 )
@@ -19,10 +19,6 @@ const (
 func main() {
 	// Generate mock tasks
 	tasks := mock.GenerateTasks(numTasks)
-
-	// Create a graceful shutdown manager
-	shutdownManager := gracefulshutdown.NewManager()
-	shutdownManager.StartSignalHandling()
 
 	var wg sync.WaitGroup
 
@@ -41,7 +37,6 @@ func main() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
 		if err != nil {
 			fmt.Printf("Error starting HTTP server: %v\n", err)
-			shutdownManager.Shutdown() // Trigger shutdown on HTTP server error
 		}
 	}()
 
@@ -50,13 +45,10 @@ func main() {
 		wg.Add(1)
 		go func(task task.Task) {
 			defer wg.Done()
-			taskManagers[task.Type].Start(shutdownManager.Context(), task, shutdownManager.WaitGroup(), gracefulshutdown.Manager{})
+			taskManagers[task.Type].Start(context.Background(), task, &wg)
 		}(t)
 	}
 
 	// Wait for tasks to finish
 	wg.Wait()
-
-	// Shutdown HTTP server
-	shutdownManager.Shutdown()
 }

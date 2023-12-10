@@ -4,8 +4,6 @@ import (
 	"context"
 	"sync"
 	"time"
-
-	"github.com/bondzai/invoker/internal/gracefulshutdown"
 )
 
 type TaskType int
@@ -23,5 +21,5 @@ type Task struct {
 }
 
 type TaskManager interface {
-	Start(ctx context.Context, task Task, wg *sync.WaitGroup, shutdownManager gracefulshutdown.Manager)
+	Start(ctx context.Context, task Task, wg *sync.WaitGroup)
 }

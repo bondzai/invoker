@@ -6,13 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bondzai/invoker/internal/gracefulshutdown"
 	"github.com/robfig/cron/v3"
 )
 
 type CronTaskManager struct{}
 
-func (m *CronTaskManager) Start(ctx context.Context, task Task, wg *sync.WaitGroup, shutdownManager gracefulshutdown.Manager) {
+func (m *CronTaskManager) Start(ctx context.Context, task Task, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	c := cron.New()
