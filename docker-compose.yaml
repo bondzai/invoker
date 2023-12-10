@@ -1,8 +1,20 @@
-version: '3'
+version: '3.8'
+
 services:
   invoker:
+    hostname: invoker
+    container_name: invoker-con
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    restart: always
+    environment:
+      - TZ=UTC
+    command: ["./invoker"]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"   # Limit to 20% of available CPU cores
+          memory: "4G"   # Limit to 4 gigabytes of RAM
