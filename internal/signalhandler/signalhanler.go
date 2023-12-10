@@ -1,4 +1,3 @@
-// signalhandler.go
 package signalhandler
 
 import (
