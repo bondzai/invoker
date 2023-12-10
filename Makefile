@@ -5,10 +5,10 @@ BINARY_NAME := $(shell basename "$$PWD")
 MAIN_GO := ./cmd/main.go
 
 # Define phony targets to avoid conflicts with files of the same name & improve performance
-.PHONY: init main-init ez-init dogo-init clean build run test
+.PHONY: init main-init ez-init dogo-init clean build run gen-gitignore test
 
 # Initial setup
-init: main-init ez-init dogo-init clean build
+init: gen-gitignore main-init ez-init dogo-init clean build
 
 # Install the main.go path
 main-init:
@@ -27,7 +27,9 @@ main-init:
 
 # Install the James-Bond utilities toolbox pkg
 ez-init:
+	go get golang.org/x/tools/gopls@latest
 	go get github.com/bondzai/goez@v0.1.0
+	go get github.com/robfig/cron/v3@v3.0.0
 
 # Install the dogo compiler for automatic rebuilds. Create a dogo.json configuration file if it doesn't exist
 dogo-init:
@@ -60,6 +62,27 @@ build:
 run:
 	@echo "  >  Running application...\n"
 	dogo -c dogo.json
+
+# Generate a .gitignore file
+gen-gitignore:
+	@echo "  >  Generating .gitignore...\n"
+	@echo "# Binaries" > .gitignore
+	@echo "bin/" >> .gitignore
+	@echo "# OS-specific files" >> .gitignore
+	@echo "*.exe" >> .gitignore
+	@echo "*.exe~" >> .gitignore
+	@echo "*.dll" >> .gitignore
+	@echo "*.so" >> .gitignore
+	@echo "*.dylib" >> .gitignore
+	@echo "# Test binary, built with 'go test -c'" >> .gitignore
+	@echo "*.test" >> .gitignore
+	@echo "# Output of the go coverage tool, specifically when used with LiteIDE" >> .gitignore
+	@echo "*.out" >> .gitignore
+	@echo "# Dependency directories (remove the comment below to include it)" >> .gitignore
+	@echo "# vendor/" >> .gitignore
+	@echo "# custom ignore" >> .gitignore
+	@echo "*.env" >> .gitignore
+	@echo "*.zip" >> .gitignore
 
 # Run tests
 test:

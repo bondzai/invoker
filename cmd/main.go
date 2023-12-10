@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 )
 
 type TaskType int
@@ -84,7 +84,7 @@ func startCronTask(ctx context.Context, task Task) {
 	c := cron.New()
 	defer c.Stop()
 
-	err := c.AddFunc(task.CronExpr, func() {
+	_, err := c.AddFunc(task.CronExpr, func() {
 		fmt.Printf("Cron Task %d: Triggered at %v\n", task.ID, time.Now())
 		// Add your cron task-specific logic here
 	})
