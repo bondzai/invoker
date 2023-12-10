@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
 
 	"github.com/bondzai/invoker/internal/mock"
@@ -26,6 +28,30 @@ func main() {
 		task.CronTask:     &task.CronTaskManager{},
 	}
 
+	// Create a context with cancellation function
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Handle graceful shutdown using a goroutine
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, os.Interrupt)
+
+		// Wait for a signal
+		<-sigCh
+
+		// Perform cleanup and initiate shutdown
+		fmt.Println("\nReceived interrupt signal. Initiating graceful shutdown...")
+		cancel()
+
+		// Wait for ongoing tasks to complete
+		wg.Wait()
+
+		// Additional cleanup if needed...
+
+		fmt.Println("Shutdown complete.")
+		os.Exit(0)
+	}()
+
 	// Start HTTP server in a goroutine
 	go func() {
 		http.HandleFunc(httpRoute, func(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +61,7 @@ func main() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
 		if err != nil {
 			fmt.Printf("Error starting HTTP server: %v\n", err)
+			cancel() // Trigger shutdown on HTTP server error
 		}
 	}()
 
@@ -43,7 +70,7 @@ func main() {
 		wg.Add(1)
 		go func(task task.Task) {
 			defer wg.Done()
-			taskManagers[task.Type].Start(context.Background(), task, &wg)
+			taskManagers[task.Type].Start(ctx, task, &wg)
 		}(t)
 	}
 
