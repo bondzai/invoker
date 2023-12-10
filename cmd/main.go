@@ -6,7 +6,8 @@ import (
 	"sync"
 	"time"
 
-	signalhandler "github.com/bondzai/invoker/internal/signalhandler"
+	"github.com/bondzai/invoker/internal/shutdown"
+	"github.com/bondzai/invoker/internal/signalhandler"
 	"github.com/robfig/cron/v3"
 )
 
@@ -24,32 +25,13 @@ type Task struct {
 	CronExpr string
 }
 
-type ShutdownManager interface {
-	Shutdown()
-}
-
-type GracefulShutdownManager struct {
-	cancelFunc context.CancelFunc
-}
-
-func NewGracefulShutdownManager() *GracefulShutdownManager {
-	_, cancel := context.WithCancel(context.Background())
-	return &GracefulShutdownManager{
-		cancelFunc: cancel,
-	}
-}
-
-func (m *GracefulShutdownManager) Shutdown() {
-	m.cancelFunc()
-}
-
 func main() {
 	tasks := []Task{
 		{ID: 1, Type: IntervalTask, Interval: 5 * time.Second},
 		{ID: 2, Type: CronTask, CronExpr: "*/10 * * * *"},
 	}
 
-	shutdownManager := NewGracefulShutdownManager()
+	shutdownManager := shutdown.NewGracefulShutdownManager()
 	signalHandler := signalhandler.NewSignalHandler()
 	signalHandler.Start()
 
@@ -63,8 +45,7 @@ func main() {
 	wg.Wait()
 	shutdownManager.Shutdown()
 }
-
-func startTask(ctx context.Context, task Task, wg *sync.WaitGroup, shutdownManager ShutdownManager) {
+func startTask(ctx context.Context, task Task, wg *sync.WaitGroup, shutdownManager shutdown.ShutdownManager) {
 	defer wg.Done()
 
 	switch task.Type {
@@ -75,7 +56,7 @@ func startTask(ctx context.Context, task Task, wg *sync.WaitGroup, shutdownManag
 	}
 }
 
-func startIntervalTask(ctx context.Context, task Task, shutdownManager ShutdownManager) {
+func startIntervalTask(ctx context.Context, task Task, shutdownManager shutdown.ShutdownManager) {
 	ticker := time.NewTicker(task.Interval)
 	defer ticker.Stop()
 
@@ -92,7 +73,7 @@ func startIntervalTask(ctx context.Context, task Task, shutdownManager ShutdownM
 	}
 }
 
-func startCronTask(ctx context.Context, task Task, shutdownManager ShutdownManager) {
+func startCronTask(ctx context.Context, task Task, shutdownManager shutdown.ShutdownManager) {
 	c := cron.New()
 	defer c.Stop()
 
