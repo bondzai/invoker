@@ -2,14 +2,16 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 
-	"github.com/bondzai/invoker/internal/mock"
 	"github.com/bondzai/invoker/internal/task"
+	"github.com/streadway/amqp"
 )
 
 func main() {
@@ -46,30 +48,76 @@ func main() {
 		}
 	}()
 
-	// Get tasks from mock package
-	tasks := mock.GetTasks()
-
 	// Map task types to task managers
 	taskManagers := map[task.TaskType]task.TaskManager{
 		task.IntervalTask: &task.IntervalTaskManager{},
 		task.CronTask:     &task.CronTaskManager{},
 	}
 
-	// Start tasks invoke loop
-	wg.Add(1)
-	go startInvokeLoop(ctx, *tasks, taskManagers, &wg)
+	// Create a RabbitMQ connection and channel
+	conn, err := amqp.Dial("amqp://guest:guest@172.21.0.2:5672/")
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+	}
+	defer conn.Close()
 
-	wg.Wait()
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("Failed to open a channel: %v", err)
+	}
+	defer ch.Close()
+
+	q, err := declareQueue(ch)
+	if err != nil {
+		log.Fatalf("Failed to declare a queue: %v", err)
+	}
+
+	// Start tasks invoke loop
+	consumeTasks(ctx, ch, q.Name, taskManagers, &wg)
 }
 
-func startInvokeLoop(ctx context.Context, tasks []task.Task, taskManagers map[task.TaskType]task.TaskManager, wg *sync.WaitGroup) {
-	defer wg.Done()
+func declareQueue(ch *amqp.Channel) (amqp.Queue, error) {
+	return ch.QueueDeclare(
+		"tasks",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+}
 
-	for _, t := range tasks {
-		wg.Add(1)
-		go func(task task.Task) {
-			defer wg.Done()
-			taskManagers[task.Type].Start(ctx, task, wg)
-		}(t)
+func consumeTasks(ctx context.Context, ch *amqp.Channel, queueName string, taskManagers map[task.TaskType]task.TaskManager, wg *sync.WaitGroup) {
+	msgs, err := ch.Consume(
+		queueName,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to register a consumer: %v", err)
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg := <-msgs:
+			var t task.Task
+			err := json.Unmarshal(msg.Body, &t)
+			if err != nil {
+				log.Printf("Failed to unmarshal task: %v", err)
+				continue
+			}
+
+			wg.Add(1)
+			go func(task task.Task) {
+				defer wg.Done()
+				taskManagers[task.Type].Start(ctx, task, wg)
+			}(t)
+		}
 	}
 }
