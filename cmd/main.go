@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -19,8 +18,7 @@ const (
 )
 
 var (
-	numTasks    = 200000
-	numTasksMux sync.Mutex
+	numTasks = 100000
 )
 
 func main() {
@@ -55,51 +53,6 @@ func main() {
 	go func() {
 		http.HandleFunc(httpRoute, func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "Invoker is running...")
-		})
-
-		http.HandleFunc("/setNumTasks", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodPut {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-				return
-			}
-
-			var requestBody struct {
-				NumTasks int `json:"numTasks"`
-			}
-
-			err := json.NewDecoder(r.Body).Decode(&requestBody)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("Error decoding JSON: %v", err), http.StatusBadRequest)
-				return
-			}
-
-			numTasksMux.Lock()
-			numTasks = requestBody.NumTasks
-			numTasksMux.Unlock()
-
-			newTasks := mock.GenerateTasks(numTasks)
-			for _, t := range newTasks {
-				wg.Add(1)
-				go func(task task.Task) {
-					defer wg.Done()
-					taskManagers[task.Type].Start(ctx, task, &wg)
-				}(t)
-			}
-
-			fmt.Fprintf(w, "numTasks updated to %d", requestBody.NumTasks)
-		})
-
-		http.HandleFunc("/getNumTasks", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodGet {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-				return
-			}
-
-			numTasksMux.Lock()
-			currentNumTasks := numTasks
-			numTasksMux.Unlock()
-
-			fmt.Fprintf(w, "Current number of tasks: %d", currentNumTasks)
 		})
 
 		err := http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
