@@ -5,7 +5,7 @@ BINARY_NAME := $(shell basename "$$PWD")
 MAIN_GO := ./cmd/main.go
 
 # Define phony targets to avoid conflicts with files of the same name & improve performance
-.PHONY: init main-init ez-init dogo-init clean build run gen-gitignore test
+.PHONY: init main-init ez-init dogo-init clean build run gen-gitignore test up_build
 
 # Initial setup
 init: gen-gitignore main-init ez-init dogo-init clean build
@@ -89,3 +89,7 @@ gen-gitignore:
 test:
 	@echo "  >  Running tests...\n"
 	go test -v ./...
+
+up_build:
+	@echo "  >  Building binary file...\n"
+	docker compose up --build --scale invoker=3
