@@ -18,6 +18,7 @@ type Task struct {
 	Type     TaskType
 	Interval time.Duration
 	CronExpr string
+	Disabled bool // Flag to disable/enable the task
 }
 
 type TaskManager interface {
