@@ -17,13 +17,7 @@ const (
 	httpRoute = "/ping"
 )
 
-var (
-	numTasks = 100000
-)
-
 func main() {
-	tasks := mock.GenerateTasks(numTasks)
-
 	var wg sync.WaitGroup
 
 	taskManagers := map[task.TaskType]task.TaskManager{
@@ -62,6 +56,7 @@ func main() {
 		}
 	}()
 
+	tasks := mock.GetTasks()
 	// Start tasks invoke loop
 	for _, t := range tasks {
 		wg.Add(1)
