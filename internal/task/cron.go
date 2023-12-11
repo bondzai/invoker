@@ -18,11 +18,11 @@ func (m *CronTaskManager) Start(ctx context.Context, task Task, wg *sync.WaitGro
 	defer c.Stop()
 
 	_, err := c.AddFunc(task.CronExpr, func() {
-		fmt.Printf("Cron Task %d: Triggered at %v\n", task.ID, time.Now())
+		printColored(fmt.Sprintf("Cron Task %d: Triggered at %v\n", task.ID, time.Now().Format(time.RFC3339)), ColorPurple)
 		// Add your cron task-specific logic here
 	})
 	if err != nil {
-		fmt.Printf("Cron Task %d: Error adding cron expression: %v\n", task.ID, err)
+		printColored(fmt.Sprintf("Cron Task %d: Error adding cron expression %v\n", task.ID, err), ColorRed)
 		return
 	}
 
