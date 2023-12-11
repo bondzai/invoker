@@ -29,5 +29,5 @@ func (m *CronTaskManager) Start(ctx context.Context, task Task, wg *sync.WaitGro
 	c.Start()
 
 	<-ctx.Done()
-	fmt.Printf("Cron Task %d: Stopping...\n", task.ID)
+	printColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), ColorYellow)
 }
