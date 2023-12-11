@@ -72,8 +72,11 @@ func main() {
 		log.Fatalf("Failed to declare a queue: %v", err)
 	}
 
+	// Create a channel to receive errors from task managers
+	errorCh := make(chan error, 1)
+
 	// Start tasks invoke loop
-	consumeTasks(ctx, ch, q.Name, taskManagers, &wg)
+	consumeTasks(ctx, ch, q.Name, taskManagers, &wg, errorCh)
 }
 
 func declareQueue(ch *amqp.Channel) (amqp.Queue, error) {
@@ -87,7 +90,7 @@ func declareQueue(ch *amqp.Channel) (amqp.Queue, error) {
 	)
 }
 
-func consumeTasks(ctx context.Context, ch *amqp.Channel, queueName string, taskManagers map[task.TaskType]task.TaskManager, wg *sync.WaitGroup) {
+func consumeTasks(ctx context.Context, ch *amqp.Channel, queueName string, taskManagers map[task.TaskType]task.TaskManager, wg *sync.WaitGroup, errorCh chan error) {
 	msgs, err := ch.Consume(
 		queueName,
 		"",
@@ -102,11 +105,12 @@ func consumeTasks(ctx context.Context, ch *amqp.Channel, queueName string, taskM
 	}
 
 	for {
+		var t task.Task
+
 		select {
 		case <-ctx.Done():
 			return
 		case msg := <-msgs:
-			var t task.Task
 			err := json.Unmarshal(msg.Body, &t)
 			if err != nil {
 				log.Printf("Failed to unmarshal task: %v", err)
@@ -116,8 +120,35 @@ func consumeTasks(ctx context.Context, ch *amqp.Channel, queueName string, taskM
 			wg.Add(1)
 			go func(task task.Task) {
 				defer wg.Done()
-				taskManagers[task.Type].Start(ctx, task, wg)
+				// Pass the error to the error channel
+				taskManagers[task.Type].Start(ctx, task, wg, errorCh)
 			}(t)
+		case err := <-errorCh:
+			log.Printf("Error from task manager: %v", err)
+			// Requeue the task without using msg directly
+			requeueTask(ch, queueName, t)
 		}
+	}
+}
+
+func requeueTask(ch *amqp.Channel, queueName string, task task.Task) {
+	body, err := json.Marshal(task)
+	if err != nil {
+		log.Printf("Failed to marshal task: %v", err)
+		return
+	}
+
+	err = ch.Publish(
+		"",
+		queueName,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
+	if err != nil {
+		log.Printf("Failed to requeue task: %v", err)
 	}
 }
