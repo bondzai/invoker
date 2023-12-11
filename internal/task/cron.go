@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bondzai/invoker/internal/util"
 	"github.com/robfig/cron/v3"
 )
 
@@ -18,16 +19,16 @@ func (m *CronTaskManager) Start(ctx context.Context, task Task, wg *sync.WaitGro
 	defer c.Stop()
 
 	_, err := c.AddFunc(task.CronExpr, func() {
-		printColored(fmt.Sprintf("Cron Task %d: Triggered at %v\n", task.ID, time.Now().Format(time.RFC3339)), ColorPurple)
+		util.PrintColored(fmt.Sprintf("Cron Task %d: Triggered at %v\n", task.ID, time.Now().Format(time.RFC3339)), util.ColorPurple)
 		// Add your cron task-specific logic here
 	})
 	if err != nil {
-		printColored(fmt.Sprintf("Cron Task %d: Error adding cron expression %v\n", task.ID, err), ColorRed)
+		util.PrintColored(fmt.Sprintf("Cron Task %d: Error adding cron expression %v\n", task.ID, err), util.ColorRed)
 		return
 	}
 
 	c.Start()
 
 	<-ctx.Done()
-	printColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), ColorYellow)
+	util.PrintColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), util.ColorYellow)
 }
