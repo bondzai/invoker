@@ -26,8 +26,24 @@ func init() {
 	}
 
 	tasks = generateTasks(numTasks)
+
 	initialized = true
 	log.Println("Mock package initialized.")
+
+	var intervalTasks, cronTasks int
+	for _, t := range tasks {
+		if t.Type == task.IntervalTask {
+			intervalTasks++
+		} else {
+			cronTasks++
+		}
+	}
+
+	log.Println("Mock package interval tasks length: ", intervalTasks, "tasks")
+	log.Println("Mock package cron tasks length: ", cronTasks, "tasks")
+	log.Println("Sleeping for 3 seconds...")
+
+	time.Sleep(3 * time.Second)
 }
 
 func generateTasks(numTasks int) []task.Task {
