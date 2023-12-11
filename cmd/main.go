@@ -2,16 +2,14 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 
+	"github.com/bondzai/invoker/internal/mock"
 	"github.com/bondzai/invoker/internal/task"
-	"github.com/streadway/amqp"
 )
 
 func main() {
@@ -54,101 +52,14 @@ func main() {
 		task.CronTask:     &task.CronTaskManager{},
 	}
 
-	// Create a RabbitMQ connection and channel
-	conn, err := amqp.Dial("amqp://guest:guest@172.21.0.2:5672/")
-	if err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
-	}
-	defer conn.Close()
-
-	ch, err := conn.Channel()
-	if err != nil {
-		log.Fatalf("Failed to open a channel: %v", err)
-	}
-	defer ch.Close()
-
-	q, err := declareQueue(ch)
-	if err != nil {
-		log.Fatalf("Failed to declare a queue: %v", err)
-	}
-
-	// Create a channel to receive errors from task managers
-	errorCh := make(chan error, 1)
-
 	// Start tasks invoke loop
-	consumeTasks(ctx, ch, q.Name, taskManagers, &wg, errorCh)
-}
-
-func declareQueue(ch *amqp.Channel) (amqp.Queue, error) {
-	return ch.QueueDeclare(
-		"tasks",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-}
-
-func consumeTasks(ctx context.Context, ch *amqp.Channel, queueName string, taskManagers map[task.TaskType]task.TaskManager, wg *sync.WaitGroup, errorCh chan error) {
-	msgs, err := ch.Consume(
-		queueName,
-		"",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		log.Fatalf("Failed to register a consumer: %v", err)
+	for _, t := range *mock.GetTasks() {
+		wg.Add(1)
+		go func(task task.Task) {
+			defer wg.Done()
+			taskManagers[task.Type].Start(ctx, task, &wg, nil)
+		}(t)
 	}
 
-	for {
-		var t task.Task
-
-		select {
-		case <-ctx.Done():
-			return
-		case msg := <-msgs:
-			err := json.Unmarshal(msg.Body, &t)
-			if err != nil {
-				log.Printf("Failed to unmarshal task: %v", err)
-				continue
-			}
-
-			wg.Add(1)
-			go func(task task.Task) {
-				defer wg.Done()
-				// Pass the error to the error channel
-				taskManagers[task.Type].Start(ctx, task, wg, errorCh)
-			}(t)
-		case err := <-errorCh:
-			log.Printf("Error from task manager: %v", err)
-			// Requeue the task without using msg directly
-			requeueTask(ch, queueName, t)
-		}
-	}
-}
-
-func requeueTask(ch *amqp.Channel, queueName string, task task.Task) {
-	body, err := json.Marshal(task)
-	if err != nil {
-		log.Printf("Failed to marshal task: %v", err)
-		return
-	}
-
-	err = ch.Publish(
-		"",
-		queueName,
-		false,
-		false,
-		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        body,
-		},
-	)
-	if err != nil {
-		log.Printf("Failed to requeue task: %v", err)
-	}
+	wg.Wait()
 }
