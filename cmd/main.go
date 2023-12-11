@@ -56,13 +56,20 @@ func main() {
 	}
 
 	// Start tasks invoke loop
-	for _, t := range *tasks {
+	wg.Add(1)
+	go startInvokeLoop(ctx, *tasks, taskManagers, &wg)
+
+	wg.Wait()
+}
+
+func startInvokeLoop(ctx context.Context, tasks []task.Task, taskManagers map[task.TaskType]task.TaskManager, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	for _, t := range tasks {
 		wg.Add(1)
 		go func(task task.Task) {
 			defer wg.Done()
-			taskManagers[task.Type].Start(ctx, task, &wg)
+			taskManagers[task.Type].Start(ctx, task, wg)
 		}(t)
 	}
-
-	wg.Wait()
 }
