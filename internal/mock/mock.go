@@ -70,6 +70,6 @@ func generateTasks(numTasks int) []task.Task {
 	return tasks
 }
 
-func GetTasks() []task.Task {
-	return tasks
+func GetTasks() *[]task.Task {
+	return &tasks
 }

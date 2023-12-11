@@ -49,13 +49,14 @@ func main() {
 	// Get tasks from mock package
 	tasks := mock.GetTasks()
 
+	// Map task types to task managers
 	taskManagers := map[task.TaskType]task.TaskManager{
 		task.IntervalTask: &task.IntervalTaskManager{},
 		task.CronTask:     &task.CronTaskManager{},
 	}
 
 	// Start tasks invoke loop
-	for _, t := range tasks {
+	for _, t := range *tasks {
 		wg.Add(1)
 		go func(task task.Task) {
 			defer wg.Done()
