@@ -19,18 +19,7 @@ func main() {
 
 	go handleGracefulShutdown(cancel, &wg)
 
-	// Start HTTP server in a goroutine
-	go func() {
-		http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, "Invoker is running...")
-		})
-
-		err := http.ListenAndServe(fmt.Sprintf(":%d", 8080), nil)
-		if err != nil {
-			fmt.Printf("Error starting HTTP server: %v\n", err)
-			cancel()
-		}
-	}()
+	go startHttpServer(cancel)
 
 	// Map task types to task managers
 	taskManagers := map[task.TaskType]task.TaskManager{
@@ -64,4 +53,17 @@ func handleGracefulShutdown(cancel context.CancelFunc, wg *sync.WaitGroup) {
 
 	fmt.Println("Shutdown complete.")
 	os.Exit(0)
+}
+
+// Start HTTP server in a goroutine
+func startHttpServer(cancel context.CancelFunc) {
+	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "Invoker is running...")
+	})
+
+	err := http.ListenAndServe(fmt.Sprintf(":%d", 8080), nil)
+	if err != nil {
+		fmt.Printf("Error starting HTTP server: %v\n", err)
+		cancel()
+	}
 }
