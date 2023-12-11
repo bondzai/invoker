@@ -12,11 +12,6 @@ import (
 	"github.com/bondzai/invoker/internal/task"
 )
 
-const (
-	httpPort  = 8080
-	httpRoute = "/ping"
-)
-
 func main() {
 	var wg sync.WaitGroup
 
@@ -45,18 +40,20 @@ func main() {
 
 	// Start HTTP server in a goroutine
 	go func() {
-		http.HandleFunc(httpRoute, func(w http.ResponseWriter, r *http.Request) {
+		http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "Invoker is running...")
 		})
 
-		err := http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", 8080), nil)
 		if err != nil {
 			fmt.Printf("Error starting HTTP server: %v\n", err)
 			cancel()
 		}
 	}()
 
+	// Get tasks from mock package
 	tasks := mock.GetTasks()
+
 	// Start tasks invoke loop
 	for _, t := range tasks {
 		wg.Add(1)
