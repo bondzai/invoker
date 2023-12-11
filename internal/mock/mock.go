@@ -23,7 +23,7 @@ func GenerateTasks(numTasks int) []task.Task {
 			tasks[i] = task.Task{
 				ID:       i + 1,
 				Type:     task.CronTask,
-				CronExpr: "*/10 * * * *",
+				CronExpr: "* * * * *",
 			}
 		}
 	}
