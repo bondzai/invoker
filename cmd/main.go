@@ -15,11 +15,6 @@ import (
 func main() {
 	var wg sync.WaitGroup
 
-	taskManagers := map[task.TaskType]task.TaskManager{
-		task.IntervalTask: &task.IntervalTaskManager{},
-		task.CronTask:     &task.CronTaskManager{},
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Handle graceful shutdown using a goroutine
@@ -53,6 +48,11 @@ func main() {
 
 	// Get tasks from mock package
 	tasks := mock.GetTasks()
+
+	taskManagers := map[task.TaskType]task.TaskManager{
+		task.IntervalTask: &task.IntervalTaskManager{},
+		task.CronTask:     &task.CronTaskManager{},
+	}
 
 	// Start tasks invoke loop
 	for _, t := range tasks {
