@@ -19,7 +19,8 @@ func main() {
 
 	go handleGracefulShutdown(cancel, &wg)
 
-	go api.StartHttpServer(cancel)
+	server := api.NewHttpServer()
+	go server.Start(ctx)
 
 	// Map task types to task managers
 	taskManagers := map[task.TaskType]task.TaskManager{

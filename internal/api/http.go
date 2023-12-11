@@ -6,14 +6,34 @@ import (
 	"net/http"
 )
 
-func StartHttpServer(cancel context.CancelFunc) {
-	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Invoker is running...")
-	})
+type Server struct {
+	Port int
+}
 
-	err := http.ListenAndServe(fmt.Sprintf(":%d", 8080), nil)
-	if err != nil {
-		fmt.Printf("Error starting HTTP server: %v\n", err)
-		cancel()
+// NewServer creates a new Server instance with default values
+func NewHttpServer() *Server {
+	return &Server{
+		Port: 8080,
 	}
+}
+
+// Start starts the HTTP server
+func (s *Server) Start(ctx context.Context) error {
+	http.HandleFunc("/ping", s.pingHandler)
+
+	serverAddr := fmt.Sprintf(":%d", s.Port)
+	server := &http.Server{Addr: serverAddr}
+
+	go func() {
+		<-ctx.Done()
+		fmt.Println("Shutting down the server...")
+		server.Shutdown(context.Background())
+	}()
+
+	fmt.Printf("Server is listening on port %d...\n", s.Port)
+	return server.ListenAndServe()
+}
+
+func (s *Server) pingHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Invoker is running...")
 }
