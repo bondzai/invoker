@@ -25,7 +25,7 @@ func init() {
 		panic(initErrorMsg)
 	}
 
-	tasks = generateTasks(numTasks)
+	tasks = *generateTasks(numTasks)
 
 	initialized = true
 	log.Println("Mock package initialized.")
@@ -46,7 +46,7 @@ func init() {
 	time.Sleep(3 * time.Second)
 }
 
-func generateTasks(numTasks int) []task.Task {
+func generateTasks(numTasks int) *[]task.Task {
 	tasks := make([]task.Task, numTasks)
 
 	for i := 0; i < numTasks; i++ {
@@ -67,7 +67,7 @@ func generateTasks(numTasks int) []task.Task {
 		}
 	}
 
-	return tasks
+	return &tasks
 }
 
 func GetTasks() *[]task.Task {
