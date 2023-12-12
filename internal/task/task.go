@@ -22,11 +22,19 @@ type Task struct {
 	Type     TaskType
 	Interval time.Duration
 	CronExpr string
-	Disabled bool // Flag to disable/enable the task
+	Disabled bool
 }
 
 type TaskManager interface {
 	Start(ctx context.Context, task Task, wg *sync.WaitGroup, errCh chan<- error)
+}
+
+// GetTaskManagers returns the mapping of task types to task managers
+func NewTaskManagers() map[TaskType]TaskManager {
+	return map[TaskType]TaskManager{
+		IntervalTask: &IntervalTaskManager{},
+		CronTask:     &CronTaskManager{},
+	}
 }
 
 type IntervalTaskManager struct{}

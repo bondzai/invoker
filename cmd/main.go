@@ -22,11 +22,8 @@ func main() {
 	server := api.NewHttpServer()
 	go server.Start(ctx)
 
-	// Map task types to task managers
-	taskManagers := map[task.TaskType]task.TaskManager{
-		task.IntervalTask: &task.IntervalTaskManager{},
-		task.CronTask:     &task.CronTaskManager{},
-	}
+	// Get task managers mapping
+	taskManagers := task.NewTaskManagers()
 
 	// Start tasks invoke loop
 	for _, t := range *mock.GetTasks() {
