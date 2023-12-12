@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Server struct {
@@ -20,6 +22,8 @@ func NewHttpServer() *Server {
 // Start starts the HTTP server
 func (s *Server) Start(ctx context.Context) error {
 	http.HandleFunc("/ping", s.pingHandler)
+
+	http.Handle("/metrics", promhttp.Handler())
 
 	serverAddr := fmt.Sprintf(":%d", s.Port)
 	server := &http.Server{Addr: serverAddr}

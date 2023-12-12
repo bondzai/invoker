@@ -31,6 +31,9 @@ ez-init:
 	go get github.com/bondzai/goez@v0.1.0
 	go get github.com/robfig/cron/v3@v3.0.0
 	go get -u github.com/streadway/amqp
+	go get github.com/prometheus/client_golang/prometheus
+	go get github.com/prometheus/client_golang/prometheus/promauto
+	go get github.com/prometheus/client_golang/prometheus/promhttp
 
 # Install the dogo compiler for automatic rebuilds. Create a dogo.json configuration file if it doesn't exist
 dogo-init:
