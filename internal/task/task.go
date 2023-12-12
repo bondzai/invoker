@@ -30,8 +30,8 @@ type TaskManager interface {
 }
 
 // GetTaskManagers returns the mapping of task types to task managers
-func NewTaskManagers() map[TaskType]TaskManager {
-	return map[TaskType]TaskManager{
+func NewTaskManagers() *map[TaskType]TaskManager {
+	return &map[TaskType]TaskManager{
 		IntervalTask: &IntervalTaskManager{},
 		CronTask:     &CronTaskManager{},
 	}

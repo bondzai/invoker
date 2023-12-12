@@ -23,7 +23,7 @@ func main() {
 	go server.Start(ctx)
 
 	// Get task managers mapping
-	taskManagers := task.NewTaskManagers()
+	taskManagers := *task.NewTaskManagers()
 
 	// Start tasks invoke loop
 	for _, t := range *mock.GetTasks() {
