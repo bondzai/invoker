@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"sync"
@@ -16,6 +17,8 @@ var (
 	tasks        []task.Task
 	numTasks     = 100000
 )
+
+var Tasks = GetStaticTasks()
 
 func init() {
 	initMutex.Lock()
@@ -92,4 +95,14 @@ func GetStaticTasks() *[]task.Task {
 			Interval: 15 * time.Second,
 		},
 	}
+}
+
+func UpdateTaskWithPointer(updatedTask *task.Task) error {
+	for i, t := range tasks {
+		if t.ID == updatedTask.ID {
+			tasks[i] = *updatedTask
+			return nil
+		}
+	}
+	return fmt.Errorf("task with ID %d not found", updatedTask.ID)
 }
