@@ -12,6 +12,10 @@ import (
 	"github.com/bondzai/invoker/internal/task"
 )
 
+func init() {
+	fmt.Println("Invoker is starting...")
+}
+
 func main() {
 	var wg sync.WaitGroup
 
