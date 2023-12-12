@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/bondzai/invoker/internal/mock"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -23,6 +25,8 @@ func NewHttpServer() *Server {
 func (s *Server) Start(ctx context.Context) error {
 	http.HandleFunc("/ping", s.pingHandler)
 
+	http.HandleFunc("/tasks", s.getTasks)
+
 	http.Handle("/metrics", promhttp.Handler())
 
 	serverAddr := fmt.Sprintf(":%d", s.Port)
@@ -40,4 +44,9 @@ func (s *Server) Start(ctx context.Context) error {
 
 func (s *Server) pingHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Invoker is running...")
+}
+
+func (s *Server) getTasks(w http.ResponseWriter, r *http.Request) {
+	tasks := mock.GetStaticTasks()
+	json.NewEncoder(w).Encode(tasks)
 }
