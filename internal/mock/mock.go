@@ -73,3 +73,23 @@ func generateTasks(numTasks int) *[]task.Task {
 func GetTasks() *[]task.Task {
 	return &tasks
 }
+
+func GetStaticTasks() *[]task.Task {
+	return &[]task.Task{
+		{
+			ID:       1,
+			Type:     task.IntervalTask,
+			Interval: 5 * time.Second,
+		},
+		{
+			ID:       2,
+			Type:     task.IntervalTask,
+			Interval: 10 * time.Second,
+		},
+		{
+			ID:       3,
+			Type:     task.IntervalTask,
+			Interval: 15 * time.Second,
+		},
+	}
+}
