@@ -83,16 +83,19 @@ func GetStaticTasks() *[]task.Task {
 			ID:       1,
 			Type:     task.IntervalTask,
 			Interval: 5 * time.Second,
+			Disabled: true,
 		},
 		{
 			ID:       2,
 			Type:     task.IntervalTask,
 			Interval: 10 * time.Second,
+			Disabled: false,
 		},
 		{
 			ID:       3,
 			Type:     task.IntervalTask,
-			Interval: 15 * time.Second,
+			Interval: 30 * time.Second,
+			Disabled: false,
 		},
 	}
 }
