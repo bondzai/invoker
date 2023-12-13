@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/bondzai/goez/toolbox"
 	"github.com/bondzai/invoker/internal/mock"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -16,7 +17,6 @@ type Server struct {
 	updatedMux sync.Mutex
 }
 
-// NewServer creates a new Server instance with default values
 func NewHttpServer() *Server {
 	return &Server{
 		Port: 8080,
@@ -64,6 +64,7 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request) {
 	defer s.updatedMux.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(mock.Tasks)
 }
 
@@ -77,10 +78,14 @@ func (s *Server) updateTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("before sent mock tasks to channel")
+	toolbox.PPrint(mock.Tasks)
 	for _, updatedTask := range *mock.Tasks {
 		_ = mock.UpdateTaskWithPointer(&updatedTask)
 	}
+	fmt.Println("after sent mock tasks to channel")
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(mock.Tasks)
 }
