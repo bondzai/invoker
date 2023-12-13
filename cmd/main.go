@@ -26,9 +26,7 @@ func main() {
 	server := api.NewHttpServer()
 	go server.Start(ctx)
 
-	// Get task managers mapping
 	taskManagers := *task.NewTaskManagers()
-
 	taskFromDB := mock.Tasks
 
 	// Start tasks invoke loop
