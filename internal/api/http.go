@@ -63,6 +63,7 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request) {
 	s.updatedMux.Lock()
 	defer s.updatedMux.Unlock()
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(mock.Tasks)
 }
 
@@ -70,18 +71,16 @@ func (s *Server) updateTasks(w http.ResponseWriter, r *http.Request) {
 	s.updatedMux.Lock()
 	defer s.updatedMux.Unlock()
 
-	// Parse the request body to get the updated tasks
 	err := json.NewDecoder(r.Body).Decode(&mock.Tasks)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Update each task
 	for _, updatedTask := range *mock.Tasks {
 		_ = mock.UpdateTaskWithPointer(&updatedTask)
 	}
 
-	// Respond with the updated tasks
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(mock.Tasks)
 }

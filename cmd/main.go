@@ -29,8 +29,10 @@ func main() {
 	// Get task managers mapping
 	taskManagers := *task.NewTaskManagers()
 
+	taskFromDB := mock.Tasks
+
 	// Start tasks invoke loop
-	for _, t := range *mock.GetTasks() {
+	for _, t := range *taskFromDB {
 		wg.Add(1)
 		go func(task task.Task) {
 			defer wg.Done()
