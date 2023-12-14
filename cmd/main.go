@@ -12,10 +12,6 @@ import (
 	"github.com/bondzai/invoker/internal/task"
 )
 
-func init() {
-	fmt.Println("Invoker is starting...")
-}
-
 func main() {
 	var wg sync.WaitGroup
 
@@ -29,7 +25,6 @@ func main() {
 	taskManagers := *task.NewTaskManagers()
 	taskFromDB := mock.Tasks
 
-	// Start tasks invoke loop
 	for _, t := range *taskFromDB {
 		wg.Add(1)
 		go func(task task.Task) {
@@ -41,7 +36,6 @@ func main() {
 	wg.Wait()
 }
 
-// Handle graceful shutdown using a goroutine
 func handleGracefulShutdown(cancel context.CancelFunc, wg *sync.WaitGroup) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt)
