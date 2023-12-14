@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/bondzai/goez/toolbox"
 	"github.com/bondzai/invoker/internal/mock"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -78,12 +77,9 @@ func (s *Server) updateTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("before sent mock tasks to channel")
-	toolbox.PPrint(mock.Tasks)
 	for _, updatedTask := range *mock.Tasks {
 		_ = mock.UpdateTaskWithPointer(&updatedTask)
 	}
-	fmt.Println("after sent mock tasks to channel")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
