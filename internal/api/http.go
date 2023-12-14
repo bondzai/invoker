@@ -22,10 +22,7 @@ func NewHttpServer() *Server {
 	}
 }
 
-// Start starts the HTTP server
 func (s *Server) Start(ctx context.Context) error {
-	http.HandleFunc("/ping", s.pingHandler)
-
 	http.HandleFunc("/tasks", s.handleTasks)
 
 	http.Handle("/metrics", promhttp.Handler())
@@ -41,10 +38,6 @@ func (s *Server) Start(ctx context.Context) error {
 
 	fmt.Printf("Server is listening on port %d...\n", s.Port)
 	return server.ListenAndServe()
-}
-
-func (s *Server) pingHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Invoker is running...")
 }
 
 func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +72,9 @@ func (s *Server) updateTasks(w http.ResponseWriter, r *http.Request) {
 
 	for _, updatedTask := range *mock.Tasks {
 		_ = mock.UpdateTaskWithPointer(&updatedTask)
+		fmt.Println("Updated task", updatedTask)
+		updatedTask.IsUpdated <- true
+		fmt.Println("Sent to channel successfully")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
