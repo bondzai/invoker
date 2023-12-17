@@ -10,20 +10,18 @@ import (
 )
 
 type Server struct {
-	Port int
+	Port      int
+	Scheduler *scheduler.Scheduler // Add Scheduler as a field
 }
 
-func NewHttpServer() *Server {
+func NewHttpServer(scheduler *scheduler.Scheduler) *Server {
 	return &Server{
-		Port: 8080,
+		Port:      8080,
+		Scheduler: scheduler, // Assign the provided scheduler to the field
 	}
 }
 
-var schedulerInstance *scheduler.Scheduler
-
 func (s *Server) Start(ctx context.Context) error {
-	schedulerInstance = scheduler.NewScheduler()
-
 	http.HandleFunc("/tasks", s.handleTasks)
 
 	http.Handle("/metrics", promhttp.Handler())

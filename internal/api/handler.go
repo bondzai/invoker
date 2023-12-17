@@ -40,12 +40,12 @@ func (s *Server) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok := schedulerInstance.Read(newTask.ID); ok {
+	if _, ok := s.Scheduler.Read(newTask.ID); ok {
 		http.Error(w, "Task with the same ID already exists", http.StatusConflict)
 		return
 	}
 
-	schedulerInstance.Create(&newTask)
+	s.Scheduler.Create(&newTask)
 
 	successMessage := map[string]string{"message": "Task created successfully"}
 	response, err := json.Marshal(successMessage)
@@ -62,7 +62,7 @@ func (s *Server) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) GetTasksHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(schedulerInstance.Tasks)
+	json.NewEncoder(w).Encode(s.Scheduler.Tasks)
 }
 
 func (s *Server) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +73,7 @@ func (s *Server) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, ok := schedulerInstance.Read(id)
+	task, ok := s.Scheduler.Read(id)
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -98,12 +98,12 @@ func (s *Server) UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok := schedulerInstance.Read(id); !ok {
+	if _, ok := s.Scheduler.Read(id); !ok {
 		http.NotFound(w, r)
 		return
 	}
 
-	schedulerInstance.Update(id, &updatedTask)
+	s.Scheduler.Update(id, &updatedTask)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -115,7 +115,7 @@ func (s *Server) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !schedulerInstance.Delete(id) {
+	if !s.Scheduler.Delete(id) {
 		http.NotFound(w, r)
 		return
 	}
