@@ -9,10 +9,10 @@ import (
 	"github.com/bondzai/invoker/internal/util"
 )
 
-var schedulerInstance *scheduler.Scheduler
-var wg sync.WaitGroup
-
 func main() {
+
+	var schedulerInstance *scheduler.Scheduler
+	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go util.HandleGracefulShutdown(cancel, &wg)
