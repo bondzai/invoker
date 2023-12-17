@@ -30,6 +30,7 @@ type Task struct {
 type Scheduler struct {
 	mu    sync.RWMutex
 	Tasks map[int]*Task
+	wg    sync.WaitGroup
 }
 
 func NewScheduler() *Scheduler {
@@ -43,6 +44,8 @@ func (s *Scheduler) Create(item *Task) {
 	defer s.mu.Unlock()
 
 	s.Tasks[item.ID] = item
+	s.wg.Add(1)
+	go startTask(context.Background(), &s.wg, item)
 }
 
 func (s *Scheduler) Read(id int) (*Task, bool) {
@@ -57,7 +60,16 @@ func (s *Scheduler) Update(id int, newItem *Task) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, ok := s.Tasks[id]; ok {
+	if task, ok := s.Tasks[id]; ok {
+		stopRoutine(task) // Stop the existing routine
+		s.wg.Wait()       // Wait for the routine to stop
+
+		// Create and start the new routine
+		s.wg.Add(1)
+		go func() {
+			defer s.wg.Done()
+			startTask(context.Background(), &s.wg, newItem)
+		}()
 		s.Tasks[id] = newItem
 		return true
 	}
@@ -68,12 +80,21 @@ func (s *Scheduler) Delete(id int) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, ok := s.Tasks[id]; ok {
+	if task, ok := s.Tasks[id]; ok {
+		stopRoutine(task) // Stop the existing routine
 		delete(s.Tasks, id)
+		s.wg.Done() // Remove from the WaitGroup
 		return true
 	}
 
 	return false
+}
+
+func stopRoutine(task *Task) {
+	if task != nil {
+		task.stop <- true // Signal to stop the routine
+		close(task.stop)  // Close the channel to avoid leaks
+	}
 }
 
 type TaskManager interface {
@@ -97,6 +118,10 @@ func (m *IntervalTaskManager) Start(ctx context.Context, task Task, wg *sync.Wai
 
 	for {
 		select {
+		case <-task.stop:
+			util.PrintColored(fmt.Sprintf("Interval Task %d: Stopping...\n", task.ID), util.ColorRed)
+			return
+
 		case <-ticker.C:
 			if !task.Disabled {
 				util.PrintColored(fmt.Sprintf("Interval Task %d: Triggered at %v\n", task.ID, time.Now().Format(time.RFC3339)), util.ColorGreen)
@@ -139,4 +164,27 @@ func (m *CronTaskManager) Start(ctx context.Context, task Task, wg *sync.WaitGro
 
 	<-ctx.Done()
 	util.PrintColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), util.ColorYellow)
+}
+
+func startTask(ctx context.Context, wg *sync.WaitGroup, task *Task) {
+	defer wg.Done()
+
+	var manager TaskManager
+
+	switch task.Type {
+	case IntervalTask:
+		manager = &IntervalTaskManager{}
+	case CronTask:
+		manager = &CronTaskManager{}
+	}
+
+	taskCh := make(chan Task)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		manager.Start(ctx, *task, wg, taskCh)
+	}()
+
+	// Log a message when the routine starts
+	util.PrintColored(fmt.Sprintf("Task %d: Routine started...\n", task.ID), util.ColorBlue)
 }

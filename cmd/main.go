@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-
 	var schedulerInstance *scheduler.Scheduler
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
