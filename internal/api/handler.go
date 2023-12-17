@@ -34,9 +34,6 @@ func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
-	s.updatedMux.Lock()
-	defer s.updatedMux.Unlock()
-
 	var newTask scheduler.Task
 	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -63,18 +60,12 @@ func (s *Server) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetTasksHandler(w http.ResponseWriter, r *http.Request) {
-	s.updatedMux.Lock()
-	defer s.updatedMux.Unlock()
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(schedulerInstance.Tasks)
 }
 
 func (s *Server) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
-	s.updatedMux.Lock()
-	defer s.updatedMux.Unlock()
-
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -94,9 +85,6 @@ func (s *Server) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
-	s.updatedMux.Lock()
-	defer s.updatedMux.Unlock()
-
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -120,9 +108,6 @@ func (s *Server) UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
-	s.updatedMux.Lock()
-	defer s.updatedMux.Unlock()
-
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
