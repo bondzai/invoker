@@ -73,7 +73,6 @@ func (s *Server) updateTasks(w http.ResponseWriter, r *http.Request) {
 	for _, updatedTask := range *mock.Tasks {
 		_ = mock.UpdateTaskWithPointer(&updatedTask)
 		fmt.Println("Updated task", updatedTask)
-		updatedTask.IsUpdated <- true
 		fmt.Println("Sent to channel successfully")
 	}
 
