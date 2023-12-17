@@ -19,12 +19,19 @@ func generateOneTask(id int, taskType TaskType, name string, interval time.Durat
 
 func (s *Scheduler) GenerateTasks(count int) {
 	for i := 1; i <= count; i++ {
+		var taskType TaskType
+		if i%2 == 0 {
+			taskType = IntervalTask
+		} else {
+			taskType = CronTask
+		}
+
 		task := generateOneTask(
 			i,
-			IntervalTask,
+			taskType,
 			fmt.Sprintf("Task%d", i),
-			time.Duration(i)*time.Minute,
-			fmt.Sprintf("*/%d * * * *", i),
+			time.Duration(i)*time.Second,
+			"* * * * *",
 			false)
 
 		s.Create(task)

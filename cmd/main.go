@@ -23,16 +23,15 @@ func main() {
 	server := api.NewHttpServer(schedulerInstance)
 	go server.Start(ctx)
 
-	// taskManagers := *task.NewTaskManagers()
-	// taskFromDB := mock.Tasks
+	taskManagers := *scheduler.NewTaskManagers()
 
-	// for _, t := range *taskFromDB {
-	// 	wg.Add(1)
-	// 	go func(task task.Task) {
-	// 		defer wg.Done()
-	// 		taskManagers[task.Type].Start(ctx, task, &wg, nil)
-	// 	}(t)
-	// }
+	for _, t := range schedulerInstance.Tasks {
+		wg.Add(1)
+		go func(task scheduler.Task) {
+			defer wg.Done()
+			taskManagers[task.Type].Start(ctx, task, &wg, nil)
+		}(*t)
+	}
 
 	wg.Wait()
 
