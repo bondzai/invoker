@@ -5,17 +5,20 @@ import (
 	"sync"
 
 	"github.com/bondzai/invoker/internal/api"
+	"github.com/bondzai/invoker/internal/scheduler"
 	"github.com/bondzai/invoker/internal/util"
 )
 
-func main() {
-	var wg sync.WaitGroup
+var schedulerInstance *scheduler.Scheduler
+var wg sync.WaitGroup
 
+func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go util.HandleGracefulShutdown(cancel, &wg)
 
-	server := api.NewHttpServer()
+	schedulerInstance = scheduler.NewScheduler()
+	server := api.NewHttpServer(schedulerInstance)
 	go server.Start(ctx)
 
 	// taskManagers := *task.NewTaskManagers()
