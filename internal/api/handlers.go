@@ -76,14 +76,14 @@ func (s *Server) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		sendResponseMessage(w, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
 	if !s.Scheduler.Delete(id) {
-		http.NotFound(w, r)
+		sendResponseMessage(w, http.StatusNotFound, "Task ID not exists")
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	sendResponseMessage(w, http.StatusOK, "Task deleted successfully")
 }
