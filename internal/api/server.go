@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/bondzai/invoker/internal/scheduler"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -20,8 +21,12 @@ func NewHttpServer() *Server {
 	}
 }
 
+var schedulerInstance *scheduler.Scheduler
+
 func (s *Server) Start(ctx context.Context) error {
 	http.HandleFunc("/tasks", s.handleTasks)
+
+	schedulerInstance = scheduler.NewScheduler()
 
 	http.Handle("/metrics", promhttp.Handler())
 
