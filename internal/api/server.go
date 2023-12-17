@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync"
 
 	"github.com/bondzai/invoker/internal/scheduler"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Server struct {
-	Port       int
-	updatedMux sync.Mutex
+	Port int
 }
 
 func NewHttpServer() *Server {
@@ -24,9 +22,9 @@ func NewHttpServer() *Server {
 var schedulerInstance *scheduler.Scheduler
 
 func (s *Server) Start(ctx context.Context) error {
-	http.HandleFunc("/tasks", s.handleTasks)
-
 	schedulerInstance = scheduler.NewScheduler()
+
+	http.HandleFunc("/tasks", s.handleTasks)
 
 	http.Handle("/metrics", promhttp.Handler())
 
