@@ -18,6 +18,8 @@ func main() {
 	go util.HandleGracefulShutdown(cancel, &wg)
 
 	schedulerInstance = scheduler.NewScheduler()
+	scheduler.GenerateTasks(schedulerInstance, 5)
+
 	server := api.NewHttpServer(schedulerInstance)
 	go server.Start(ctx)
 
