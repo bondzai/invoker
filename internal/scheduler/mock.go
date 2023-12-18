@@ -13,7 +13,6 @@ func generateOneTask(id int, taskType TaskType, name string, interval time.Durat
 		Interval: interval,
 		CronExpr: cronExpr,
 		Disabled: disabled,
-		stop:     make(chan struct{}),
 	}
 }
 
