@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"runtime"
 	"strconv"
 
 	"github.com/bondzai/invoker/internal/scheduler"
@@ -12,6 +14,9 @@ func (s *Server) GetTasksHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(s.Scheduler.Tasks)
+
+	fmt.Println("Number of Goroutines:", runtime.NumGoroutine())
+
 }
 
 func (s *Server) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
