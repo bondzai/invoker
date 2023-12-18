@@ -24,7 +24,7 @@ type Task struct {
 	Interval time.Duration `json:"interval"`
 	CronExpr string        `json:"cronExpr"`
 	Disabled bool          `json:"disabled"`
-	stop     chan struct{} `json:"-"`
+	isAlive  chan struct{} `json:"-"`
 }
 
 type Scheduler struct {
@@ -87,19 +87,12 @@ func (s *Scheduler) Delete(id int) bool {
 func (s *Scheduler) stopRoutine(task *Task) {
 	// don't mutex lock here, otherwise deadlock will occur
 	if task != nil {
-		close(task.stop)
-		// select {
-		// case <-task.stop:
-		// 	return
-
-		// default:
-		// 	close(task.stop)
-		// }
+		close(task.isAlive)
 	}
 }
 
 func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
-	task.stop = make(chan struct{})
+	task.isAlive = make(chan struct{})
 
 	s.Wg.Add(1)
 	defer s.Wg.Done()
@@ -121,7 +114,7 @@ func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) {
 
 	for {
 		select {
-		case <-task.stop:
+		case <-task.isAlive:
 			util.PrintColored(fmt.Sprintf("Interval Task %d: Stopping...\n", task.ID), util.ColorRed)
 			return
 
@@ -154,7 +147,7 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) {
 	c.Start()
 
 	select {
-	case <-task.stop:
+	case <-task.isAlive:
 		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), util.ColorRed)
 		return
 
