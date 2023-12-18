@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"runtime"
-	"sync"
 	"time"
 
 	"github.com/bondzai/goez/toolbox"
@@ -12,16 +10,6 @@ import (
 	"github.com/bondzai/invoker/internal/scheduler"
 	"github.com/bondzai/invoker/internal/util"
 )
-
-var initOnce sync.Once
-
-func init() {
-	initOnce.Do(func() {
-		fmt.Println("Initializing...")
-		fmt.Println("Number of CPU:", runtime.GOMAXPROCS(runtime.NumCPU()))
-		fmt.Println("Number of Goroutines:", runtime.NumGoroutine())
-	})
-}
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -45,7 +33,8 @@ func main() {
 		CronExpr: "* * * * *",
 		Disabled: false,
 	}
-	fmt.Println("*** Tasks ***")
+
+	fmt.Println("*** Tasks for workers ***")
 	toolbox.PPrint(si.Tasks)
 
 	go util.HandleGracefulShutdown(cancel, &si.Wg)
