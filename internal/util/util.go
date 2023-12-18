@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -34,6 +35,6 @@ func HandleGracefulShutdown(cancel context.CancelFunc, wg *sync.WaitGroup) {
 
 	wg.Wait()
 
-	fmt.Println("Shutdown complete.")
+	log.Println("Shutdown complete.")
 	os.Exit(0)
 }
