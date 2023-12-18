@@ -40,7 +40,7 @@ func main() {
 	si.Tasks[2] = &scheduler.Task{
 		ID:       2,
 		Type:     scheduler.IntervalTask,
-		Name:     "Task1",
+		Name:     "Task2",
 		Interval: time.Duration(4) * time.Second,
 		CronExpr: "* * * * *",
 		Disabled: false,
