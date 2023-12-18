@@ -19,12 +19,9 @@ func main() {
 	server := api.NewHttpServer(si)
 	go server.Start(ctx)
 
-	go func() {
-		for _, t := range si.Tasks {
-			si.Wg.Add(1)
-			go si.InvokeTask(ctx, t)
-		}
-	}()
+	for _, t := range si.Tasks {
+		go si.InvokeTask(ctx, t)
+	}
 
 	si.Wg.Wait()
 	select {}
