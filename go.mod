@@ -5,8 +5,8 @@ go 1.21
 require github.com/robfig/cron/v3 v3.0.0
 
 require (
+	github.com/bondzai/goez v0.1.0
 	github.com/prometheus/client_golang v1.17.0
-	github.com/streadway/amqp v1.1.0
 )
 
 require (
