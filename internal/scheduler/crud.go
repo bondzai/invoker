@@ -1,6 +1,8 @@
 package scheduler
 
-import "context"
+import (
+	"context"
+)
 
 func (s *Scheduler) Create(newTask *Task) {
 	s.mu.Lock()
@@ -30,7 +32,7 @@ func (s *Scheduler) Update(id int, newTask *Task) bool {
 		s.Tasks[id].Disabled = newTask.Disabled
 
 		s.stopRoutine(task)
-		go s.InvokeTask(context.Background(), newTask)
+		go s.InvokeTask(context.Background(), s.Tasks[id])
 		return true
 	}
 
