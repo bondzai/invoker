@@ -30,7 +30,6 @@ func HandleGracefulShutdown(cancel context.CancelFunc, wg *sync.WaitGroup) {
 
 	<-sigCh
 
-	fmt.Println("\nReceived interrupt signal. Initiating graceful shutdown...")
 	cancel()
 
 	wg.Wait()

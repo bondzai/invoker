@@ -3,7 +3,10 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/bondzai/invoker/internal/util"
@@ -45,6 +48,15 @@ func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
 	s.Wg.Add(1)
 	defer s.Wg.Done()
 
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-signalCh
+		util.PrintColored("Received termination signal. Stopping scheduler...\n", util.ColorRed)
+		close(task.isAlive)
+	}()
+
 	switch task.Type {
 	case IntervalTask:
 		s.runIntervalTask(ctx, task)
@@ -52,8 +64,6 @@ func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
 	case CronTask:
 		s.runCronTask(ctx, task)
 	}
-
-	util.PrintColored(fmt.Sprintf("Task %d: Routine started...\n", task.ID), util.ColorBlue)
 }
 
 func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) {
@@ -116,5 +126,14 @@ func (s *Scheduler) stopRoutine(task *Task) {
 	// don't mutex lock here, otherwise deadlock will occur
 	if task != nil {
 		close(task.isAlive)
+	}
+}
+
+func (s *Scheduler) stopAllRoutines() {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, task := range s.Tasks {
+		s.stopRoutine(task)
 	}
 }
