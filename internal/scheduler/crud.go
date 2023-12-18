@@ -2,12 +2,12 @@ package scheduler
 
 import "context"
 
-func (s *Scheduler) Create(t *Task) {
+func (s *Scheduler) Create(newTask *Task) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.Tasks[t.ID] = t
-	go s.InvokeTask(context.Background(), t)
+	s.Tasks[newTask.ID] = newTask
+	go s.InvokeTask(context.Background(), newTask)
 }
 
 func (s *Scheduler) Read(id int) (*Task, bool) {
@@ -18,19 +18,19 @@ func (s *Scheduler) Read(id int) (*Task, bool) {
 	return task, ok
 }
 
-func (s *Scheduler) Update(id int, t *Task) bool {
+func (s *Scheduler) Update(id int, newTask *Task) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if task, ok := s.Tasks[id]; ok {
-		s.Tasks[id].Name = t.Name
-		s.Tasks[id].Type = t.Type
-		s.Tasks[id].Interval = t.Interval
-		s.Tasks[id].CronExpr = t.CronExpr
-		s.Tasks[id].Disabled = t.Disabled
+		s.Tasks[id].Name = newTask.Name
+		s.Tasks[id].Type = newTask.Type
+		s.Tasks[id].Interval = newTask.Interval
+		s.Tasks[id].CronExpr = newTask.CronExpr
+		s.Tasks[id].Disabled = newTask.Disabled
 
 		s.stopRoutine(task)
-		go s.InvokeTask(context.Background(), t)
+		go s.InvokeTask(context.Background(), newTask)
 		return true
 	}
 
