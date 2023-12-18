@@ -24,7 +24,6 @@ func main() {
 	go server.Start(ctx)
 
 	for _, t := range si.Tasks {
-		si.Wg.Add(1)
 		go si.InvokeTask(ctx, t)
 	}
 
