@@ -41,7 +41,7 @@ func (s *Server) Start(ctx context.Context) error {
 	return server.ListenAndServe()
 }
 
-func sendResponseMessage(w http.ResponseWriter, statusCode int, message string) {
+func (s *Server) sendResponseMessage(w http.ResponseWriter, statusCode int, message string) {
 	responseData := map[string]string{"message": message}
 	response, err := json.Marshal(responseData)
 	if err != nil {

@@ -36,30 +36,30 @@ func (s *Server) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var newTask scheduler.Task
 	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
-		sendResponseMessage(w, http.StatusBadRequest, "Invalid request payload")
+		s.sendResponseMessage(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
 	if _, ok := s.Scheduler.Read(newTask.ID); ok {
-		sendResponseMessage(w, http.StatusConflict, "Task with the same ID already exists")
+		s.sendResponseMessage(w, http.StatusConflict, "Task with the same ID already exists")
 		return
 	}
 
 	s.Scheduler.Create(&newTask)
-	sendResponseMessage(w, http.StatusCreated, "Task created successfully")
+	s.sendResponseMessage(w, http.StatusCreated, "Task created successfully")
 }
 
 func (s *Server) UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		sendResponseMessage(w, http.StatusBadRequest, "Invalid task ID")
+		s.sendResponseMessage(w, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
 	var updatedTask scheduler.Task
 	if err := json.NewDecoder(r.Body).Decode(&updatedTask); err != nil {
-		sendResponseMessage(w, http.StatusBadRequest, "Invalid request payload")
+		s.sendResponseMessage(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
@@ -69,21 +69,21 @@ func (s *Server) UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.Scheduler.Update(id, &updatedTask)
-	sendResponseMessage(w, http.StatusOK, "Task updated successfully")
+	s.sendResponseMessage(w, http.StatusOK, "Task updated successfully")
 }
 
 func (s *Server) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		sendResponseMessage(w, http.StatusBadRequest, "Invalid task ID")
+		s.sendResponseMessage(w, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
 	if !s.Scheduler.Delete(id) {
-		sendResponseMessage(w, http.StatusNotFound, "Task ID not exists")
+		s.sendResponseMessage(w, http.StatusNotFound, "Task ID not exists")
 		return
 	}
 
-	sendResponseMessage(w, http.StatusOK, "Task deleted successfully")
+	s.sendResponseMessage(w, http.StatusOK, "Task deleted successfully")
 }
