@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"sync"
 
 	"github.com/bondzai/invoker/internal/api"
 	"github.com/bondzai/invoker/internal/scheduler"
@@ -10,29 +9,23 @@ import (
 )
 
 func main() {
-	var schedulerInstance *scheduler.Scheduler
-	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go util.HandleGracefulShutdown(cancel, &wg)
+	si := scheduler.NewScheduler()
+	si.GenerateTasks(3)
 
-	schedulerInstance = scheduler.NewScheduler()
-	schedulerInstance.GenerateTasks(3)
+	go util.HandleGracefulShutdown(cancel, &si.Wg)
 
-	server := api.NewHttpServer(schedulerInstance)
+	server := api.NewHttpServer(si)
 	go server.Start(ctx)
 
-	taskManagers := *scheduler.NewTaskManagers()
+	go func() {
+		for _, t := range si.Tasks {
+			si.Wg.Add(1)
+			go si.InvokeTask(ctx, t)
+		}
+	}()
 
-	for _, t := range schedulerInstance.Tasks {
-		wg.Add(1)
-		go func(task scheduler.Task) {
-			defer wg.Done()
-			taskManagers[task.Type].Start(ctx, task, &wg, nil)
-		}(*t)
-	}
-
-	wg.Wait()
-
+	si.Wg.Wait()
 	select {}
 }
