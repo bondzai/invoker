@@ -18,7 +18,7 @@ type Task struct {
 
 type Scheduler struct {
 	Tasks []*Task
-	mu    sync.Mutex // Mutex for safe concurrent access to the Tasks
+	mu    sync.Mutex
 }
 
 func (s *Scheduler) AddTask(task *Task) {
