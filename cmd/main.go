@@ -16,26 +16,7 @@ func main() {
 
 	si := scheduler.NewScheduler()
 
-	si.Tasks[1] = &scheduler.Task{
-		ID:       1,
-		Type:     scheduler.IntervalTask,
-		Name:     "Task1",
-		Interval: time.Duration(4) * time.Second,
-		CronExpr: "* * * * *",
-		Disabled: false,
-	}
-
-	si.Tasks[2] = &scheduler.Task{
-		ID:       2,
-		Type:     scheduler.IntervalTask,
-		Name:     "Task2",
-		Interval: time.Duration(4) * time.Second,
-		CronExpr: "* * * * *",
-		Disabled: false,
-	}
-
-	fmt.Println("*** Tasks for workers ***")
-	toolbox.PPrint(si.Tasks)
+	si.Tasks = mockTasks()
 
 	go util.HandleGracefulShutdown(cancel, &si.Wg)
 
@@ -48,4 +29,31 @@ func main() {
 
 	si.Wg.Wait()
 	select {}
+}
+
+func mockTasks() map[int]*scheduler.Task {
+	tasks := make(map[int]*scheduler.Task)
+
+	tasks[1] = &scheduler.Task{
+		ID:       1,
+		Type:     scheduler.IntervalTask,
+		Name:     "Task1",
+		Interval: time.Duration(4) * time.Second,
+		CronExpr: "* * * * *",
+		Disabled: false,
+	}
+
+	tasks[2] = &scheduler.Task{
+		ID:       2,
+		Type:     scheduler.IntervalTask,
+		Name:     "Task2",
+		Interval: time.Duration(4) * time.Second,
+		CronExpr: "* * * * *",
+		Disabled: false,
+	}
+
+	fmt.Println("Mock tasks:")
+	toolbox.PPrint(tasks)
+
+	return tasks
 }
