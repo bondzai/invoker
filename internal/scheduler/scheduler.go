@@ -43,6 +43,18 @@ func NewScheduler() *Scheduler {
 	}
 }
 
+func (s *Scheduler) stopTask(task *Task) {
+	// don't mutex lock here, otherwise deadlock will occur
+	if task != nil {
+		select {
+		case <-task.isAlive:
+			// Channel is already closed
+		default:
+			close(task.isAlive)
+		}
+	}
+}
+
 func (s *Scheduler) StartTask(ctx context.Context, task *Task) {
 	task.isAlive = make(chan struct{})
 
@@ -127,7 +139,7 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) error {
 	}
 }
 
-func (s *Scheduler) processTask(task *Task) {
+func (s *Scheduler) processTask(task *Task) error {
 	if task.Type == IntervalTask {
 		util.PrintColored(fmt.Sprintf("Interval Task %d: Triggered at %v\n", task.ID, time.Now().Format(util.TimeFormat)), util.ColorGreen)
 	}
@@ -139,16 +151,5 @@ func (s *Scheduler) processTask(task *Task) {
 	// Add your task-specific logic here
 	// If an error occurs during the task execution, handle it accordingly
 	// For example, errCh <- fmt.Errorf("Task %d failed", task.ID)
-}
-
-func (s *Scheduler) stopTask(task *Task) {
-	// don't mutex lock here, otherwise deadlock will occur
-	if task != nil {
-		select {
-		case <-task.isAlive:
-			// Channel is already closed
-		default:
-			close(task.isAlive)
-		}
-	}
+	return nil
 }
