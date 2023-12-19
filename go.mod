@@ -4,10 +4,7 @@ go 1.21
 
 require github.com/robfig/cron/v3 v3.0.0
 
-require (
-	github.com/bondzai/goez v0.1.0
-	github.com/prometheus/client_golang v1.17.0
-)
+require github.com/prometheus/client_golang v1.17.0
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
