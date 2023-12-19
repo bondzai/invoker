@@ -3,7 +3,10 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/bondzai/invoker/internal/util"
@@ -45,8 +48,14 @@ func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
 	s.Wg.Add(1)
 	defer s.Wg.Done()
 
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
 	go func() {
-		<-ctx.Done()
+		select {
+		case <-stop:
+		case <-ctx.Done():
+		}
 		s.stopRoutine(task)
 	}()
 
