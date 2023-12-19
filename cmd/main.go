@@ -39,8 +39,8 @@ func mockTasks() map[int]*scheduler.Task {
 			ID:       1,
 			Type:     scheduler.IntervalTask,
 			Name:     "Task1",
-			Interval: time.Duration(4) * time.Second,
-			CronExpr: "* * * * *",
+			Interval: time.Duration(60) * time.Second,
+			CronExpr: []string{"* * * * *"},
 			Disabled: false,
 		}
 
@@ -49,7 +49,7 @@ func mockTasks() map[int]*scheduler.Task {
 			Type:     scheduler.CronTask,
 			Name:     "Task2",
 			Interval: time.Duration(4) * time.Second,
-			CronExpr: "* * * * *",
+			CronExpr: []string{"3 17 * * *", "1 17 * * *"},
 			Disabled: false,
 		}
 	}
@@ -68,7 +68,7 @@ func mockTasks() map[int]*scheduler.Task {
 				Type:     taskType,
 				Name:     fmt.Sprintf("Task%d", i),
 				Interval: time.Duration(i) * time.Second,
-				CronExpr: "* * * * *",
+				CronExpr: []string{"* * * * *"},
 				Disabled: false,
 			}
 			tasks[i] = task

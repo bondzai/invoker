@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -25,7 +26,7 @@ type Task struct {
 	Type     TaskType      `json:"type"`
 	Name     string        `json:"name"`
 	Interval time.Duration `json:"interval"`
-	CronExpr string        `json:"cronExpr"`
+	CronExpr []string      `json:"cronExpr"`
 	Disabled bool          `json:"disabled"`
 	isAlive  chan struct{} `json:"-"`
 }
@@ -100,7 +101,19 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) {
 		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopped\n", task.ID), util.ColorPurple)
 	}()
 
-	_, err := c.AddFunc(task.CronExpr, func() {
+	_, err := c.AddFunc(task.CronExpr[0], func() {
+		if !task.Disabled {
+			log.Println("Cron Task A: Triggered")
+			s.processTask(task)
+		}
+	})
+	if err != nil {
+		util.PrintColored(fmt.Sprintf("Cron Task %d: Error adding cron expression %v\n", task.ID, err), util.ColorRed)
+		return
+	}
+
+	_, err = c.AddFunc(task.CronExpr[1], func() {
+		log.Println("Cron Task B: Triggered")
 		if !task.Disabled {
 			s.processTask(task)
 		}
@@ -126,7 +139,9 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) {
 func (s *Scheduler) processTask(task *Task) {
 	if task.Type == IntervalTask {
 		util.PrintColored(fmt.Sprintf("Interval Task %d: Triggered at %v\n", task.ID, time.Now().Format(util.TimeFormat)), util.ColorGreen)
-	} else {
+	}
+
+	if task.Type == CronTask {
 		util.PrintColored(fmt.Sprintf("Cron Task %d: Triggered at %v\n", task.ID, time.Now().Format(util.TimeFormat)), util.ColorCyan)
 	}
 
