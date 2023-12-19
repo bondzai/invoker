@@ -44,14 +44,16 @@ func NewScheduler() *Scheduler {
 }
 
 func (s *Scheduler) stopTask(task *Task) {
+	if task == nil {
+		return
+	}
+
 	// don't mutex lock here, otherwise deadlock will occur
-	if task != nil {
-		select {
-		case <-task.isAlive:
-			// Channel is already closed
-		default:
-			close(task.isAlive)
-		}
+	select {
+	case <-task.isAlive:
+		// Channel is already closed
+	default:
+		close(task.isAlive)
 	}
 }
 
