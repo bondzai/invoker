@@ -94,7 +94,7 @@ func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) {
 	}
 }
 
-func (s *Scheduler) runCronTask(ctx context.Context, task *Task) {
+func (s *Scheduler) runCronTask(ctx context.Context, task *Task) error {
 	c := cron.New()
 	defer func() {
 		c.Stop()
@@ -109,8 +109,8 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) {
 				s.processTask(task)
 			}
 		}); err != nil {
-			util.PrintColored(fmt.Sprintf("Cron Task %d: Error adding cron expression %v\n", task.ID, err), util.ColorRed)
-			return
+			log.Println("Cron Task", task.ID, "Error: ", err)
+			return util.ErrInvalidTaskCronExpr
 		}
 	}
 
@@ -119,11 +119,11 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) {
 	select {
 	case <-task.isAlive:
 		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), util.ColorRed)
-		return
+		return nil
 
 	case <-ctx.Done():
 		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), util.ColorYellow)
-		return
+		return nil
 	}
 }
 
