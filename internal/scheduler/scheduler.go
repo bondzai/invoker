@@ -69,7 +69,7 @@ func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
 	}
 }
 
-func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) {
+func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) error {
 	ticker := time.NewTicker(task.Interval)
 	defer func() {
 		ticker.Stop()
@@ -85,11 +85,11 @@ func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) {
 
 		case <-task.isAlive:
 			util.PrintColored(fmt.Sprintf("Interval Task %d: Stopping...\n", task.ID), util.ColorRed)
-			return
+			return nil
 
 		case <-ctx.Done():
 			util.PrintColored(fmt.Sprintf("Interval Task %d: Stopping...\n", task.ID), util.ColorYellow)
-			return
+			return nil
 		}
 	}
 }
