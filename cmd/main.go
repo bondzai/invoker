@@ -23,7 +23,7 @@ func main() {
 	go server.Start(ctx)
 
 	for _, t := range si.Tasks {
-		go si.InvokeTask(ctx, t)
+		go si.StartTask(ctx, t)
 	}
 
 	si.Wg.Wait()

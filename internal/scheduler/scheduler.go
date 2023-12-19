@@ -43,7 +43,7 @@ func NewScheduler() *Scheduler {
 	}
 }
 
-func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
+func (s *Scheduler) StartTask(ctx context.Context, task *Task) {
 	task.isAlive = make(chan struct{})
 
 	s.Wg.Add(1)
@@ -57,7 +57,7 @@ func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
 		case <-stop:
 		case <-ctx.Done():
 		}
-		s.stopRoutine(task)
+		s.stopTask(task)
 	}()
 
 	switch task.Type {
@@ -141,7 +141,7 @@ func (s *Scheduler) processTask(task *Task) {
 	// For example, errCh <- fmt.Errorf("Task %d failed", task.ID)
 }
 
-func (s *Scheduler) stopRoutine(task *Task) {
+func (s *Scheduler) stopTask(task *Task) {
 	// don't mutex lock here, otherwise deadlock will occur
 	if task != nil {
 		select {
