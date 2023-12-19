@@ -125,9 +125,9 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) {
 
 func (s *Scheduler) processTask(task *Task) {
 	if task.Type == IntervalTask {
-		util.PrintColored(fmt.Sprintf("Interval Task %d: Triggered at %v\n", task.ID, time.Now().Format(time.RFC3339)), util.ColorGreen)
+		util.PrintColored(fmt.Sprintf("Interval Task %d: Triggered at %v\n", task.ID, time.Now().Format(util.TimeFormat)), util.ColorGreen)
 	} else {
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Triggered at %v\n", task.ID, time.Now().Format(time.RFC3339)), util.ColorCyan)
+		util.PrintColored(fmt.Sprintf("Cron Task %d: Triggered at %v\n", task.ID, time.Now().Format(util.TimeFormat)), util.ColorCyan)
 	}
 
 	// Add your task-specific logic here

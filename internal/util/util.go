@@ -19,6 +19,7 @@ const (
 	ColorPurple = "\033[35m"
 	ColorCyan   = "\033[36m"
 	ColorWhite  = "\033[37m"
+	TimeFormat  = "2006-01-02 15:04:05"
 )
 
 func PrintColored(message string, colorCode string) {
