@@ -101,26 +101,17 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) {
 		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopped\n", task.ID), util.ColorPurple)
 	}()
 
-	_, err := c.AddFunc(task.CronExpr[0], func() {
-		if !task.Disabled {
-			log.Println("Cron Task A: Triggered")
-			s.processTask(task)
+	for _, expr := range task.CronExpr {
+		localExpr := expr
+		if _, err := c.AddFunc(localExpr, func() {
+			if !task.Disabled {
+				log.Println("Cron Task", task.ID, "Triggered with syntax: ", localExpr)
+				s.processTask(task)
+			}
+		}); err != nil {
+			util.PrintColored(fmt.Sprintf("Cron Task %d: Error adding cron expression %v\n", task.ID, err), util.ColorRed)
+			return
 		}
-	})
-	if err != nil {
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Error adding cron expression %v\n", task.ID, err), util.ColorRed)
-		return
-	}
-
-	_, err = c.AddFunc(task.CronExpr[1], func() {
-		log.Println("Cron Task B: Triggered")
-		if !task.Disabled {
-			s.processTask(task)
-		}
-	})
-	if err != nil {
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Error adding cron expression %v\n", task.ID, err), util.ColorRed)
-		return
 	}
 
 	c.Start()

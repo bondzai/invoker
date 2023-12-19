@@ -49,7 +49,7 @@ func mockTasks() map[int]*scheduler.Task {
 			Type:     scheduler.CronTask,
 			Name:     "Task2",
 			Interval: time.Duration(4) * time.Second,
-			CronExpr: []string{"3 17 * * *", "1 17 * * *"},
+			CronExpr: []string{"* * * * *", "*/2 * * * *"},
 			Disabled: false,
 		}
 	}
