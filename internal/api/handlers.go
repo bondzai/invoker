@@ -18,13 +18,13 @@ func (s *Server) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		s.sendResponseMessage(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
 	task, ok := s.Scheduler.Read(id)
 	if !ok {
-		http.NotFound(w, r)
+		s.sendResponseMessage(w, http.StatusNotFound, "Task ID not exists")
 		return
 	}
 
@@ -64,7 +64,7 @@ func (s *Server) UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, ok := s.Scheduler.Read(id); !ok {
-		http.NotFound(w, r)
+		s.sendResponseMessage(w, http.StatusNotFound, "Task ID not exists")
 		return
 	}
 

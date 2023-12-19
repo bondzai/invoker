@@ -31,7 +31,7 @@ func main() {
 }
 
 func mockTasks() map[int]*scheduler.Task {
-	mode := "dynamic"
+	mode := "static"
 	tasks := make(map[int]*scheduler.Task)
 
 	if mode == "static" {
