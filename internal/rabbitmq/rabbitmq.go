@@ -13,7 +13,6 @@ const (
 
 type Publisher interface {
 	Publish(data interface{}) error
-	Close()
 }
 
 type RabbitMQPublisher struct {

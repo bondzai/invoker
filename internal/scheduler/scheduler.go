@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bondzai/invoker/internal/rabbitmq"
 	"github.com/bondzai/invoker/internal/util"
 	"github.com/robfig/cron/v3"
 )
@@ -33,14 +34,22 @@ type Task struct {
 }
 
 type Scheduler struct {
-	mu    sync.RWMutex
-	Wg    sync.WaitGroup
-	Tasks map[int]*Task
+	mu       sync.RWMutex
+	Wg       sync.WaitGroup
+	Tasks    map[int]*Task
+	RabbitMQ *rabbitmq.RabbitMQPublisher
 }
 
 func NewScheduler() *Scheduler {
+	rabbitMQ, err := rabbitmq.NewRabbitMQPublisher(rabbitmq.ConnectionURL, rabbitmq.QueueName)
+	if err != nil {
+		// Handle the error accordingly
+		log.Fatal("Error creating RabbitMQPublisher:", err)
+	}
+
 	return &Scheduler{
-		Tasks: make(map[int]*Task),
+		Tasks:    make(map[int]*Task),
+		RabbitMQ: rabbitMQ, // Set the RabbitMQPublisher instance
 	}
 }
 
@@ -154,5 +163,16 @@ func (s *Scheduler) processTask(task *Task) error {
 	// Add your task-specific logic here
 	// If an error occurs during the task execution, handle it accordingly
 	// For example, errCh <- fmt.Errorf("Task %d failed", task.ID)
+	message := map[string]interface{}{
+		"task_id":      task.ID,
+		"triggered_at": time.Now().Format(util.TimeFormat),
+	}
+
+	err := s.RabbitMQ.Publish(message)
+	if err != nil {
+		// Handle the error accordingly
+		log.Println("Error publishing message:", err)
+	}
+
 	return nil
 }
