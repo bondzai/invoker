@@ -17,7 +17,7 @@ import (
 type TaskType int
 
 const (
-	IntervalTask TaskType = iota
+	IntervalTask TaskType = iota + 1
 	CronTask
 )
 
