@@ -3,8 +3,10 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -16,7 +18,7 @@ import (
 type TaskType int
 
 const (
-	IntervalTask TaskType = iota
+	IntervalTask TaskType = iota + 1
 	CronTask
 )
 
@@ -25,7 +27,7 @@ type Task struct {
 	Type     TaskType      `json:"type"`
 	Name     string        `json:"name"`
 	Interval time.Duration `json:"interval"`
-	CronExpr string        `json:"cronExpr"`
+	CronExpr []string      `json:"cronExpr"`
 	Disabled bool          `json:"disabled"`
 	isAlive  chan struct{} `json:"-"`
 }
@@ -42,7 +44,21 @@ func NewScheduler() *Scheduler {
 	}
 }
 
-func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
+func (s *Scheduler) stopTask(task *Task) {
+	if task == nil {
+		return
+	}
+
+	// don't mutex lock here, otherwise deadlock will occur
+	select {
+	case <-task.isAlive:
+		// Channel is already closed
+	default:
+		close(task.isAlive)
+	}
+}
+
+func (s *Scheduler) StartTask(ctx context.Context, task *Task) {
 	task.isAlive = make(chan struct{})
 
 	s.Wg.Add(1)
@@ -56,7 +72,7 @@ func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
 		case <-stop:
 		case <-ctx.Done():
 		}
-		s.stopRoutine(task)
+		s.stopTask(task)
 	}()
 
 	switch task.Type {
@@ -68,11 +84,11 @@ func (s *Scheduler) InvokeTask(ctx context.Context, task *Task) {
 	}
 }
 
-func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) {
+func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) error {
 	ticker := time.NewTicker(task.Interval)
 	defer func() {
 		ticker.Stop()
-		util.PrintColored(fmt.Sprintf("Interval Task %d: Stopped\n", task.ID), util.ColorPurple)
+		util.PrintColored("Interval Task "+strconv.Itoa(task.ID)+": Stopped\n", util.ColorPurple)
 	}()
 
 	for {
@@ -83,66 +99,60 @@ func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) {
 			}
 
 		case <-task.isAlive:
-			util.PrintColored(fmt.Sprintf("Interval Task %d: Stopping...\n", task.ID), util.ColorRed)
-			return
+			util.PrintColored("Interval Task "+strconv.Itoa(task.ID)+": Stopping...\n", util.ColorRed)
+			return nil
 
 		case <-ctx.Done():
-			util.PrintColored(fmt.Sprintf("Interval Task %d: Stopping...\n", task.ID), util.ColorYellow)
-			return
+			util.PrintColored("Interval Task "+strconv.Itoa(task.ID)+": Stopping...\n", util.ColorYellow)
+			return nil
 		}
 	}
 }
 
-func (s *Scheduler) runCronTask(ctx context.Context, task *Task) {
+func (s *Scheduler) runCronTask(ctx context.Context, task *Task) error {
 	c := cron.New()
 	defer func() {
 		c.Stop()
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopped\n", task.ID), util.ColorPurple)
+		util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Stopped:\n", util.ColorPurple)
 	}()
 
-	_, err := c.AddFunc(task.CronExpr, func() {
-		if !task.Disabled {
-			s.processTask(task)
+	for _, expr := range task.CronExpr {
+		localExpr := expr
+		if _, err := c.AddFunc(localExpr, func() {
+			if !task.Disabled {
+				util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Triggered with syntax: \n"+localExpr, util.ColorYellow)
+				s.processTask(task)
+			}
+		}); err != nil {
+			log.Println("Cron Task", task.ID, "Error: ", err)
+			return util.ErrInvalidTaskCronExpr
 		}
-	})
-	if err != nil {
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Error adding cron expression %v\n", task.ID, err), util.ColorRed)
-		return
 	}
 
 	c.Start()
 
 	select {
 	case <-task.isAlive:
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), util.ColorRed)
-		return
+		util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Stopping...\n", util.ColorRed)
+		return nil
 
 	case <-ctx.Done():
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), util.ColorYellow)
-		return
+		util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Stopping...\n", util.ColorYellow)
+		return nil
 	}
 }
 
-func (s *Scheduler) processTask(task *Task) {
+func (s *Scheduler) processTask(task *Task) error {
 	if task.Type == IntervalTask {
-		util.PrintColored(fmt.Sprintf("Interval Task %d: Triggered at %v\n", task.ID, time.Now().Format(time.RFC3339)), util.ColorGreen)
-	} else {
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Triggered at %v\n", task.ID, time.Now().Format(time.RFC3339)), util.ColorCyan)
+		util.PrintColored(fmt.Sprintf("Interval Task %d: Triggered at %v\n", task.ID, time.Now().Format(util.TimeFormat)), util.ColorGreen)
+	}
+
+	if task.Type == CronTask {
+		util.PrintColored(fmt.Sprintf("Cron Task %d: Triggered at %v\n", task.ID, time.Now().Format(util.TimeFormat)), util.ColorCyan)
 	}
 
 	// Add your task-specific logic here
 	// If an error occurs during the task execution, handle it accordingly
 	// For example, errCh <- fmt.Errorf("Task %d failed", task.ID)
-}
-
-func (s *Scheduler) stopRoutine(task *Task) {
-	// don't mutex lock here, otherwise deadlock will occur
-	if task != nil {
-		select {
-		case <-task.isAlive:
-			// Channel is already closed
-		default:
-			close(task.isAlive)
-		}
-	}
+	return nil
 }

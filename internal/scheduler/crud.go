@@ -9,7 +9,7 @@ func (s *Scheduler) Create(newTask *Task) {
 	defer s.mu.Unlock()
 
 	s.Tasks[newTask.ID] = newTask
-	go s.InvokeTask(context.Background(), newTask)
+	go s.StartTask(context.Background(), newTask)
 }
 
 func (s *Scheduler) Read(id int) (*Task, bool) {
@@ -31,8 +31,8 @@ func (s *Scheduler) Update(id int, newTask *Task) bool {
 		s.Tasks[id].CronExpr = newTask.CronExpr
 		s.Tasks[id].Disabled = newTask.Disabled
 
-		s.stopRoutine(task)
-		go s.InvokeTask(context.Background(), s.Tasks[id])
+		s.stopTask(task)
+		go s.StartTask(context.Background(), s.Tasks[id])
 		return true
 	}
 
@@ -44,7 +44,7 @@ func (s *Scheduler) Delete(id int) bool {
 	defer s.mu.Unlock()
 
 	if task, ok := s.Tasks[id]; ok {
-		s.stopRoutine(task)
+		s.stopTask(task)
 		delete(s.Tasks, id)
 		return true
 	}
