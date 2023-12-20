@@ -14,7 +14,7 @@ func MockTasks() map[int]*Task {
 			ID:       1,
 			Type:     IntervalTask,
 			Name:     "Task1",
-			Interval: time.Duration(60) * time.Second,
+			Interval: time.Duration(5) * time.Second,
 			CronExpr: []string{"* * * * *"},
 			Disabled: false,
 		}
