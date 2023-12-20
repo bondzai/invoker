@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -87,7 +88,7 @@ func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) error {
 	ticker := time.NewTicker(task.Interval)
 	defer func() {
 		ticker.Stop()
-		util.PrintColored(fmt.Sprintf("Interval Task %d: Stopped\n", task.ID), util.ColorPurple)
+		util.PrintColored("Interval Task "+strconv.Itoa(task.ID)+": Stopped\n", util.ColorPurple)
 	}()
 
 	for {
@@ -98,11 +99,11 @@ func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) error {
 			}
 
 		case <-task.isAlive:
-			util.PrintColored(fmt.Sprintf("Interval Task %d: Stopping...\n", task.ID), util.ColorRed)
+			util.PrintColored("Interval Task "+strconv.Itoa(task.ID)+": Stopping...\n", util.ColorRed)
 			return nil
 
 		case <-ctx.Done():
-			util.PrintColored(fmt.Sprintf("Interval Task %d: Stopping...\n", task.ID), util.ColorYellow)
+			util.PrintColored("Interval Task "+strconv.Itoa(task.ID)+": Stopping...\n", util.ColorYellow)
 			return nil
 		}
 	}
@@ -112,14 +113,14 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) error {
 	c := cron.New()
 	defer func() {
 		c.Stop()
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopped\n", task.ID), util.ColorPurple)
+		util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Stopped:\n", util.ColorPurple)
 	}()
 
 	for _, expr := range task.CronExpr {
 		localExpr := expr
 		if _, err := c.AddFunc(localExpr, func() {
 			if !task.Disabled {
-				log.Println("Cron Task", task.ID, "Triggered with syntax: ", localExpr)
+				util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Triggered with syntax: \n"+localExpr, util.ColorYellow)
 				s.processTask(task)
 			}
 		}); err != nil {
@@ -132,11 +133,11 @@ func (s *Scheduler) runCronTask(ctx context.Context, task *Task) error {
 
 	select {
 	case <-task.isAlive:
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), util.ColorRed)
+		util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Stopping...\n", util.ColorRed)
 		return nil
 
 	case <-ctx.Done():
-		util.PrintColored(fmt.Sprintf("Cron Task %d: Stopping...\n", task.ID), util.ColorYellow)
+		util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Stopping...\n", util.ColorYellow)
 		return nil
 	}
 }

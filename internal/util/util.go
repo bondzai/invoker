@@ -2,7 +2,6 @@ package util
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -23,7 +22,7 @@ const (
 )
 
 func PrintColored(message string, colorCode string) {
-	fmt.Printf("%s%s%s\n", colorCode, message, ColorReset)
+	log.Printf("%s%s%s\n", colorCode, message, ColorReset)
 }
 
 func HandleGracefulShutdown(cancel context.CancelFunc, wg *sync.WaitGroup) {
