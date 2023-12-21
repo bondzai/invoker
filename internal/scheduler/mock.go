@@ -32,19 +32,19 @@ func MockTasks() map[int]*Task {
 	if mode == "dynamic" {
 		for i := 1; i <= 100000; i++ {
 			var taskType TaskType
-			var groudID int
+			var groupID int
 
 			if i%2 == 0 {
-				groudID = 1
+				groupID = 1
 				taskType = IntervalTask
 			} else {
-				groudID = 2
+				groupID = 2
 				taskType = CronTask
 			}
 
 			task := &Task{
 				ID:       i,
-				GroupID:  groudID,
+				GroupID:  groupID,
 				Type:     taskType,
 				Name:     fmt.Sprintf("Task%d", i),
 				Interval: time.Duration(i) * time.Second,
