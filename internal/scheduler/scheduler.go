@@ -164,13 +164,14 @@ func (s *Scheduler) processTask(task *Task) error {
 	// If an error occurs during the task execution, handle it accordingly
 	// For example, errCh <- fmt.Errorf("Task %d failed", task.ID)
 	message := map[string]interface{}{
-		"task_id":      task.ID,
-		"triggered_at": time.Now().Format(util.TimeFormat),
+		"task_id":              task.ID,
+		"task_name":            task.Name,
+		"task_cron_expression": task.CronExpr,
+		"triggered_at":         time.Now().Format(util.TimeFormat),
 	}
 
 	err := s.RabbitMQ.Publish(message)
 	if err != nil {
-		// Handle the error accordingly
 		log.Println("Error publishing message:", err)
 	}
 
