@@ -25,6 +25,7 @@ const (
 
 type Task struct {
 	ID       int           `json:"id"`
+	GroupID  int           `json:"group_id"`
 	Type     TaskType      `json:"type"`
 	Name     string        `json:"name"`
 	Interval time.Duration `json:"interval"`
@@ -163,6 +164,7 @@ func (s *Scheduler) processTask(task *Task) error {
 	// For example, errCh <- fmt.Errorf("Task %d failed", task.ID)
 	message := map[string]interface{}{
 		"task_id":              task.ID,
+		"group_id":             task.GroupID,
 		"task_name":            task.Name,
 		"task_cron_expression": task.CronExpr,
 		"triggered_at":         time.Now().Format(util.TimeFormat),
