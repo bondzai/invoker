@@ -64,8 +64,9 @@ func (p *RabbitMQPublisher) Publish(data interface{}) error {
 		false,        // Mandatory
 		false,        // Immediate
 		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        jsonBody,
+			DeliveryMode: amqp.Persistent,
+			ContentType:  "application/json",
+			Body:         jsonBody,
 		},
 	)
 	return err
