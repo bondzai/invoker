@@ -6,7 +6,7 @@ import (
 )
 
 func MockTasks() map[int]*Task {
-	mode := "static"
+	mode := "dynamic"
 	tasks := make(map[int]*Task)
 
 	if mode == "static" {
