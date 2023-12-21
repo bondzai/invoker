@@ -43,13 +43,12 @@ type Scheduler struct {
 func NewScheduler() *Scheduler {
 	rabbitMQ, err := rabbitmq.NewRabbitMQPublisher(rabbitmq.ConnectionURL, rabbitmq.QueueName)
 	if err != nil {
-		// Handle the error accordingly
 		log.Fatal("Error creating RabbitMQPublisher:", err)
 	}
 
 	return &Scheduler{
 		Tasks:    make(map[int]*Task),
-		RabbitMQ: rabbitMQ, // Set the RabbitMQPublisher instance
+		RabbitMQ: rabbitMQ,
 	}
 }
 
@@ -58,10 +57,9 @@ func (s *Scheduler) stopTask(task *Task) {
 		return
 	}
 
-	// don't mutex lock here, otherwise deadlock will occur
 	select {
 	case <-task.isAlive:
-		// Channel is already closed
+
 	default:
 		close(task.isAlive)
 	}
