@@ -29,27 +29,37 @@ func MockTasks() map[int]*Task {
 		}
 	}
 
+	maxTasks := 100000
+
 	if mode == "dynamic" {
-		for i := 1; i <= 100000; i++ {
+		for i := 1; i <= maxTasks; i++ {
 			var taskType TaskType
-			var groupID int
+			var projectID int
+			var organization string
 
 			if i%2 == 0 {
-				groupID = 1
+				projectID = 1
 				taskType = IntervalTask
 			} else {
-				groupID = 2
+				projectID = 2
 				taskType = CronTask
 			}
 
+			if i < maxTasks/2 {
+				organization = "org1"
+			} else {
+				organization = "org2"
+			}
+
 			task := &Task{
-				ID:       i,
-				GroupID:  groupID,
-				Type:     taskType,
-				Name:     fmt.Sprintf("Task%d", i),
-				Interval: time.Duration(i) * time.Second,
-				CronExpr: []string{"* * * * *"},
-				Disabled: false,
+				ID:           i,
+				Organization: organization,
+				ProjectID:    projectID,
+				Type:         taskType,
+				Name:         fmt.Sprintf("Task%d", i),
+				Interval:     time.Duration(i) * time.Second,
+				CronExpr:     []string{"* * * * *"},
+				Disabled:     false,
 			}
 
 			tasks[i] = task

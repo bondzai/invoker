@@ -168,8 +168,8 @@ func (s *Scheduler) processTask(task *Task) error {
 		"project_id":           task.ProjectID,
 		"task_name":            task.Name,
 		"task_cron_expression": task.CronExpr,
-		"triggered_at":         time.Now().Format(util.TimeFormat),
 		"organization":         task.Organization,
+		"timestamp":            time.Now().Format(util.TimeFormat),
 	}
 
 	err := s.RabbitMQ.Publish(message)
