@@ -24,14 +24,15 @@ const (
 )
 
 type Task struct {
-	ID       int           `json:"id"`
-	GroupID  int           `json:"group_id"`
-	Type     TaskType      `json:"type"`
-	Name     string        `json:"name"`
-	Interval time.Duration `json:"interval"`
-	CronExpr []string      `json:"cronExpr"`
-	Disabled bool          `json:"disabled"`
-	isAlive  chan struct{} `json:"-"`
+	ID           int           `json:"id"`
+	Organization string        `json:"organization"`
+	ProjectID    int           `json:"project_id"`
+	Type         TaskType      `json:"type"`
+	Name         string        `json:"name"`
+	Interval     time.Duration `json:"interval"`
+	CronExpr     []string      `json:"cronExpr"`
+	Disabled     bool          `json:"disabled"`
+	isAlive      chan struct{} `json:"-"`
 }
 
 type Scheduler struct {
@@ -164,10 +165,11 @@ func (s *Scheduler) processTask(task *Task) error {
 	// For example, errCh <- fmt.Errorf("Task %d failed", task.ID)
 	message := map[string]interface{}{
 		"task_id":              task.ID,
-		"group_id":             task.GroupID,
+		"project_id":           task.ProjectID,
 		"task_name":            task.Name,
 		"task_cron_expression": task.CronExpr,
 		"triggered_at":         time.Now().Format(util.TimeFormat),
+		"organization":         task.Organization,
 	}
 
 	err := s.RabbitMQ.Publish(message)
