@@ -1,146 +1,158 @@
 package scheduler
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"net/http"
+	"log"
+	"os"
+	"os/signal"
+	"strconv"
 	"sync"
+	"syscall"
 	"time"
+
+	"github.com/bondzai/invoker/internal/util"
+	"github.com/robfig/cron/v3"
+)
+
+type TaskType int
+
+const (
+	IntervalTask TaskType = iota + 1
+	CronTask
 )
 
 type Task struct {
-	ID       int
-	Name     string
-	Interval time.Duration
-	Action   func()
-	stop     chan bool
+	ID       int           `json:"id"`
+	Type     TaskType      `json:"type"`
+	Name     string        `json:"name"`
+	Interval time.Duration `json:"interval"`
+	CronExpr []string      `json:"cronExpr"`
+	Disabled bool          `json:"disabled"`
+	isAlive  chan struct{} `json:"-"`
 }
 
 type Scheduler struct {
-	Tasks []*Task
-	mu    sync.Mutex
+	mu    sync.RWMutex
+	Wg    sync.WaitGroup
+	Tasks map[int]*Task
 }
 
-func (s *Scheduler) AddTask(task *Task) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.Tasks = append(s.Tasks, task)
+func NewScheduler() *Scheduler {
+	return &Scheduler{
+		Tasks: make(map[int]*Task),
+	}
 }
 
-func (s *Scheduler) RunScheduler() {
-	var wg sync.WaitGroup
+func (s *Scheduler) stopTask(task *Task) {
+	if task == nil {
+		return
+	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// don't mutex lock here, otherwise deadlock will occur
+	select {
+	case <-task.isAlive:
+		// Channel is already closed
+	default:
+		close(task.isAlive)
+	}
+}
 
-	for _, task := range s.Tasks {
-		wg.Add(1)
-		go func(t *Task) {
-			defer wg.Done()
-			for {
-				select {
-				case <-time.After(t.Interval):
-					fmt.Println("")
-					fmt.Println(time.Now().Format("15:04:05"))
-					fmt.Println(t.Interval)
-					t.Action()
-					fmt.Println("")
-				case <-t.stop:
-					return
-				}
+func (s *Scheduler) StartTask(ctx context.Context, task *Task) {
+	task.isAlive = make(chan struct{})
+
+	s.Wg.Add(1)
+	defer s.Wg.Done()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		select {
+		case <-stop:
+		case <-ctx.Done():
+		}
+		s.stopTask(task)
+	}()
+
+	switch task.Type {
+	case IntervalTask:
+		s.runIntervalTask(ctx, task)
+
+	case CronTask:
+		s.runCronTask(ctx, task)
+	}
+}
+
+func (s *Scheduler) runIntervalTask(ctx context.Context, task *Task) error {
+	ticker := time.NewTicker(task.Interval)
+	defer func() {
+		ticker.Stop()
+		util.PrintColored("Interval Task "+strconv.Itoa(task.ID)+": Stopped\n", util.ColorPurple)
+	}()
+
+	for {
+		select {
+		case <-ticker.C:
+			if !task.Disabled {
+				s.processTask(task)
 			}
-		}(task)
-	}
 
-	wg.Wait()
-}
+		case <-task.isAlive:
+			util.PrintColored("Interval Task "+strconv.Itoa(task.ID)+": Stopping...\n", util.ColorRed)
+			return nil
 
-func (s *Scheduler) UpdateTaskInterval(taskID int, newInterval time.Duration) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for _, task := range s.Tasks {
-		if task.ID == taskID {
-			task.stop <- true
-
-			task.Interval = newInterval
-
-			go func(t *Task) {
-				for {
-					select {
-					case <-time.After(t.Interval):
-						fmt.Println("")
-						fmt.Println(time.Now().Format("15:04:05"))
-						fmt.Println(t.Interval)
-						t.Action()
-						fmt.Println("")
-					case <-t.stop:
-						return
-					}
-				}
-			}(task)
-
-			return
+		case <-ctx.Done():
+			util.PrintColored("Interval Task "+strconv.Itoa(task.ID)+": Stopping...\n", util.ColorYellow)
+			return nil
 		}
 	}
 }
 
-func updateTaskHandler(s *Scheduler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var requestData struct {
-			TaskID      int    `json:"task_id"`
-			NewInterval string `json:"new_interval"`
+func (s *Scheduler) runCronTask(ctx context.Context, task *Task) error {
+	c := cron.New()
+	defer func() {
+		c.Stop()
+		util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Stopped:\n", util.ColorPurple)
+	}()
+
+	for _, expr := range task.CronExpr {
+		localExpr := expr
+		if _, err := c.AddFunc(localExpr, func() {
+			if !task.Disabled {
+				util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Triggered with syntax: \n"+localExpr, util.ColorYellow)
+				s.processTask(task)
+			}
+		}); err != nil {
+			log.Println("Cron Task", task.ID, "Error: ", err)
+			return util.ErrInvalidTaskCronExpr
 		}
+	}
 
-		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-			http.Error(w, fmt.Sprintf("Error decoding request body: %s", err), http.StatusBadRequest)
-			return
-		}
+	c.Start()
 
-		duration, err := time.ParseDuration(requestData.NewInterval)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error parsing duration: %s", err), http.StatusBadRequest)
-			return
-		}
+	select {
+	case <-task.isAlive:
+		util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Stopping...\n", util.ColorRed)
+		return nil
 
-		s.UpdateTaskInterval(requestData.TaskID, duration)
-
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Task %d interval updated to %s", requestData.TaskID, requestData.NewInterval)
+	case <-ctx.Done():
+		util.PrintColored("Cron Task "+strconv.Itoa(task.ID)+" Stopping...\n", util.ColorYellow)
+		return nil
 	}
 }
 
-func Scheduling() {
-	scheduler := &Scheduler{}
-
-	task1 := &Task{
-		ID:       1,
-		Name:     "Task 1",
-		Interval: 2 * time.Second,
-		Action: func() {
-			fmt.Println("Running Task 1")
-		},
-		stop: make(chan bool),
+func (s *Scheduler) processTask(task *Task) error {
+	if task.Type == IntervalTask {
+		util.PrintColored(fmt.Sprintf("Interval Task %d: Triggered at %v\n", task.ID, time.Now().Format(util.TimeFormat)), util.ColorGreen)
 	}
 
-	task2 := &Task{
-		ID:       2,
-		Name:     "Task 2",
-		Interval: 5 * time.Second,
-		Action: func() {
-			fmt.Println("Running Task 2")
-		},
-		stop: make(chan bool),
+	if task.Type == CronTask {
+		util.PrintColored(fmt.Sprintf("Cron Task %d: Triggered at %v\n", task.ID, time.Now().Format(util.TimeFormat)), util.ColorCyan)
 	}
 
-	scheduler.AddTask(task1)
-	scheduler.AddTask(task2)
-
-	fmt.Println("Scheduler is running...")
-
-	go scheduler.RunScheduler()
-
-	http.HandleFunc("/updateTask", updateTaskHandler(scheduler))
-
-	http.ListenAndServe(":8080", nil)
+	// Add your task-specific logic here
+	// If an error occurs during the task execution, handle it accordingly
+	// For example, errCh <- fmt.Errorf("Task %d failed", task.ID)
+	return nil
 }

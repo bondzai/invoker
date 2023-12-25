@@ -2,50 +2,28 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"os/signal"
-	"sync"
 
 	"github.com/bondzai/invoker/internal/api"
-	"github.com/bondzai/invoker/internal/mock"
-	"github.com/bondzai/invoker/internal/task"
+	"github.com/bondzai/invoker/internal/scheduler"
+	"github.com/bondzai/invoker/internal/util"
 )
 
 func main() {
-	var wg sync.WaitGroup
-
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go handleGracefulShutdown(cancel, &wg)
+	si := scheduler.NewScheduler()
 
-	server := api.NewHttpServer()
+	si.Tasks = scheduler.MockTasks()
+
+	go util.HandleGracefulShutdown(cancel, &si.Wg)
+
+	server := api.NewHttpServer(si)
 	go server.Start(ctx)
 
-	taskManagers := *task.NewTaskManagers()
-
-	for _, t := range *mock.GetTasks() {
-		wg.Add(1)
-		go func(task task.Task) {
-			defer wg.Done()
-			taskManagers[task.Type].Start(ctx, task, &wg, nil)
-		}(t)
+	for _, t := range si.Tasks {
+		go si.StartTask(ctx, t)
 	}
 
-	wg.Wait()
-}
-
-func handleGracefulShutdown(cancel context.CancelFunc, wg *sync.WaitGroup) {
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt)
-
-	<-sigCh
-
-	fmt.Println("\nReceived interrupt signal. Initiating graceful shutdown...")
-	cancel()
-
-	wg.Wait()
-
-	fmt.Println("Shutdown complete.")
-	os.Exit(0)
+	si.Wg.Wait()
+	select {}
 }
