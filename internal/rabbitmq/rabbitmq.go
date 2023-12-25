@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	QueueName     = "log"
+	QueueName     = "logs"
 	ConnectionURL = "amqp://guest:guest@localhost:5672/"
 )
 
