@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
+	"log"
 
 	"github.com/bondzai/invoker/internal/api"
 	"github.com/bondzai/invoker/internal/scheduler"
 	"github.com/bondzai/invoker/internal/util"
 )
+
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+}
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())

@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bondzai/invoker/internal/rabbitmq"
 	"github.com/bondzai/invoker/internal/util"
 	"github.com/robfig/cron/v3"
 )
@@ -23,24 +24,33 @@ const (
 )
 
 type Task struct {
-	ID       int           `json:"id"`
-	Type     TaskType      `json:"type"`
-	Name     string        `json:"name"`
-	Interval time.Duration `json:"interval"`
-	CronExpr []string      `json:"cronExpr"`
-	Disabled bool          `json:"disabled"`
-	isAlive  chan struct{} `json:"-"`
+	ID           int           `json:"id"`
+	Organization string        `json:"organization"`
+	ProjectID    int           `json:"project_id"`
+	Type         TaskType      `json:"type"`
+	Name         string        `json:"name"`
+	Interval     time.Duration `json:"interval"`
+	CronExpr     []string      `json:"cronExpr"`
+	Disabled     bool          `json:"disabled"`
+	isAlive      chan struct{} `json:"-"`
 }
 
 type Scheduler struct {
-	mu    sync.RWMutex
-	Wg    sync.WaitGroup
-	Tasks map[int]*Task
+	mu       sync.RWMutex
+	Wg       sync.WaitGroup
+	Tasks    map[int]*Task
+	RabbitMQ *rabbitmq.RabbitMQPublisher
 }
 
 func NewScheduler() *Scheduler {
+	rabbitMQ, err := rabbitmq.NewRabbitMQPublisher(rabbitmq.ConnectionURL, rabbitmq.QueueName)
+	if err != nil {
+		log.Fatal("Error creating RabbitMQPublisher:", err)
+	}
+
 	return &Scheduler{
-		Tasks: make(map[int]*Task),
+		Tasks:    make(map[int]*Task),
+		RabbitMQ: rabbitMQ,
 	}
 }
 
@@ -49,10 +59,9 @@ func (s *Scheduler) stopTask(task *Task) {
 		return
 	}
 
-	// don't mutex lock here, otherwise deadlock will occur
 	select {
 	case <-task.isAlive:
-		// Channel is already closed
+
 	default:
 		close(task.isAlive)
 	}
@@ -154,5 +163,19 @@ func (s *Scheduler) processTask(task *Task) error {
 	// Add your task-specific logic here
 	// If an error occurs during the task execution, handle it accordingly
 	// For example, errCh <- fmt.Errorf("Task %d failed", task.ID)
+	message := map[string]interface{}{
+		"task_id":              task.ID,
+		"project_id":           task.ProjectID,
+		"task_name":            task.Name,
+		"task_cron_expression": task.CronExpr,
+		"organization":         task.Organization,
+		"timestamp":            time.Now().Format(util.TimeFormat),
+	}
+
+	err := s.RabbitMQ.Publish(message)
+	if err != nil {
+		log.Println("Error publishing message:", err)
+	}
+
 	return nil
 }
