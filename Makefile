@@ -1,16 +1,12 @@
 # Makefile for Golang dev.
 
-# Project-specific settings
 BINARY_NAME := $(shell basename "$$PWD")
 MAIN_GO := ./cmd/main.go
 
-# Define phony targets to avoid conflicts with files of the same name & improve performance
-.PHONY: init main-init ez-init dogo-init clean build run gen-gitignore test up_build
+.PHONY: init main-init ez-init dogo-init clean build run gen-gitignore test up_build dev
 
-# Initial setup
 init: gen-gitignore main-init ez-init dogo-init clean build
 
-# Install the main.go path
 main-init:
 	@if [ ! -d $(dir $(MAIN_GO)) ]; then \
 		echo 'Creating directory: $(dir $(MAIN_GO))'; \
@@ -25,7 +21,6 @@ main-init:
 		echo '}' >> $(MAIN_GO); \
 	fi
 
-# Install the James-Bond utilities toolbox pkg
 ez-init:
 	go get golang.org/x/tools/gopls@latest
 	go get github.com/bondzai/goez@v0.1.0
@@ -35,7 +30,6 @@ ez-init:
 	go get github.com/prometheus/client_golang/prometheus/promauto
 	go get github.com/prometheus/client_golang/prometheus/promhttp
 
-# Install the dogo compiler for automatic rebuilds. Create a dogo.json configuration file if it doesn't exist
 dogo-init:
 	go get github.com/liudng/dogo
 	@if [ ! -e dogo.json ]; then \
@@ -50,24 +44,20 @@ dogo-init:
 		echo '}' >> dogo.json; \
 	fi
 
-# Clean the project: remove binary and clean Go cache
 clean:
 	@echo "  >  Cleaning build cache...\n"
 	go clean
 	rm -f $(BINARY_NAME)
 	go mod tidy
 
-# Build the application: compile the Go code in $(MAIN_GO) into a binary
 build:
 	@echo "  >  Building binary file...\n"
 	go build -o bin/$(BINARY_NAME) $(MAIN_GO)
 
-# Run the application: use dogo for automatic rebuilds on file changes
 run:
 	@echo "  >  Running application...\n"
 	dogo -c dogo.json
 
-# Generate a .gitignore file
 gen-gitignore:
 	@echo "  >  Generating .gitignore...\n"
 	@echo "# Binaries" > .gitignore
@@ -88,7 +78,6 @@ gen-gitignore:
 	@echo "*.env" >> .gitignore
 	@echo "*.zip" >> .gitignore
 
-# Run tests
 test:
 	@echo "  >  Running tests...\n"
 	go test -v ./...
@@ -96,3 +85,7 @@ test:
 up_build:
 	@echo "  >  Building binary file...\n"
 	docker compose up --build --scale invoker=3
+
+dev:
+	@echo "  >  Running application...\n"
+	go run $(MAIN_GO)

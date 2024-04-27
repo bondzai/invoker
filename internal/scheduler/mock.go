@@ -6,7 +6,7 @@ import (
 )
 
 func MockTasks() map[int]*Task {
-	mode := "static"
+	mode := "dynamic"
 	tasks := make(map[int]*Task)
 
 	if mode == "static" {
@@ -14,7 +14,7 @@ func MockTasks() map[int]*Task {
 			ID:       1,
 			Type:     IntervalTask,
 			Name:     "Task1",
-			Interval: time.Duration(60) * time.Second,
+			Interval: time.Duration(5) * time.Second,
 			CronExpr: []string{"* * * * *"},
 			Disabled: false,
 		}
@@ -29,23 +29,39 @@ func MockTasks() map[int]*Task {
 		}
 	}
 
+	maxTasks := 100000
+
 	if mode == "dynamic" {
-		for i := 1; i <= 100000; i++ {
+		for i := 1; i <= maxTasks; i++ {
 			var taskType TaskType
+			var projectID int
+			var organization string
+
 			if i%2 == 0 {
+				projectID = 1
 				taskType = IntervalTask
 			} else {
+				projectID = 2
 				taskType = CronTask
 			}
 
-			task := &Task{
-				ID:       i,
-				Type:     taskType,
-				Name:     fmt.Sprintf("Task%d", i),
-				Interval: time.Duration(i) * time.Second,
-				CronExpr: []string{"* * * * *"},
-				Disabled: false,
+			if i < maxTasks/2 {
+				organization = "org1"
+			} else {
+				organization = "org2"
 			}
+
+			task := &Task{
+				ID:           i,
+				Organization: organization,
+				ProjectID:    projectID,
+				Type:         taskType,
+				Name:         fmt.Sprintf("Task%d", i),
+				Interval:     time.Duration(i) * time.Second,
+				CronExpr:     []string{"* * * * *"},
+				Disabled:     false,
+			}
+
 			tasks[i] = task
 		}
 	}
