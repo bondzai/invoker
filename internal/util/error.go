@@ -11,3 +11,4 @@ func NewError(msg string) error {
 var ErrCommon = NewError("common error")
 var ErrInvalidTaskInterval = NewError("invalid task interval")
 var ErrInvalidTaskCronExpr = NewError("invalid task cron expression")
+var ErrCreateRabbitMQ = NewError("error creating RabbitMQPublisher")

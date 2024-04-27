@@ -19,7 +19,8 @@ import (
 type TaskType int
 
 const (
-	IntervalTask TaskType = iota + 1
+	DefaultTask TaskType = iota
+	IntervalTask
 	CronTask
 )
 
@@ -45,7 +46,7 @@ type Scheduler struct {
 func NewScheduler() *Scheduler {
 	rabbitMQ, err := rabbitmq.NewRabbitMQPublisher(rabbitmq.ConnectionURL, rabbitmq.QueueName)
 	if err != nil {
-		log.Fatal("Error creating RabbitMQPublisher:", err)
+		log.Println(util.ErrCreateRabbitMQ)
 	}
 
 	return &Scheduler{
