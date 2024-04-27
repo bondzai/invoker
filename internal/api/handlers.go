@@ -8,16 +8,11 @@ import (
 	"github.com/bondzai/invoker/internal/scheduler"
 )
 
-// Common error messages
 const (
-	InvalidRequestPayload = "Invalid request payload"
-	InvalidTaskID         = "Invalid task ID"
-	TaskIDNotExists       = "Task ID not exists"
-	TaskConflict          = "Task with the same ID already exists"
-)
-
-// Common success messages
-const (
+	InvalidRequestPayload   = "Invalid request payload"
+	InvalidTaskID           = "Invalid task ID"
+	TaskIDNotExists         = "Task ID not exists"
+	TaskConflict            = "Task with the same ID already exists"
 	TaskCreatedSuccessfully = "Task created successfully"
 	TaskUpdatedSuccessfully = "Task updated successfully"
 	TaskDeletedSuccessfully = "Task deleted successfully"
