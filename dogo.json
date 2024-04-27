@@ -3,6 +3,6 @@
     "SourceDir": ["."],
     "SourceExt": [".c", ".cpp", ".go", ".h"],
     "BuildCmd": "go build -o bin/invoker ./cmd/main.go",
-    "RunCmd": "./bin/invoker",
+    "RunCmd": "./bin/invoker --mock",
     "Decreasing": 1
 }
