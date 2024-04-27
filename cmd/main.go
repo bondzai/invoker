@@ -17,24 +17,24 @@ func init() {
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	si := scheduler.NewScheduler()
+	s := scheduler.NewScheduler()
 
 	flag.Parse()
 
 	mockFlag := flag.Bool("mock", false, "Create dummy tasks for scheduler")
 	if *mockFlag {
-		si.Tasks = scheduler.MockTasks()
+		s.Tasks = scheduler.MockTasks()
 	}
 
-	go util.HandleGracefulShutdown(cancel, &si.Wg)
+	go util.HandleGracefulShutdown(cancel, &s.Wg)
 
-	server := api.NewHttpServer(si)
+	server := api.NewHttpServer(s)
 	go server.Start(ctx)
 
-	for _, t := range si.Tasks {
-		go si.StartTask(ctx, t)
+	for _, t := range s.Tasks {
+		go s.StartTask(ctx, t)
 	}
 
-	si.Wg.Wait()
+	s.Wg.Wait()
 	select {}
 }
