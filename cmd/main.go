@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 
 	"github.com/bondzai/invoker/internal/api"
@@ -18,7 +19,12 @@ func main() {
 
 	si := scheduler.NewScheduler()
 
-	si.Tasks = scheduler.MockTasks()
+	flag.Parse()
+
+	mockFlag := flag.Bool("mock", false, "Create dummy tasks for scheduler")
+	if *mockFlag {
+		si.Tasks = scheduler.MockTasks()
+	}
 
 	go util.HandleGracefulShutdown(cancel, &si.Wg)
 
