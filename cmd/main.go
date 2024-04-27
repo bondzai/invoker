@@ -15,13 +15,13 @@ func init() {
 }
 
 func main() {
+	mockFlag := flag.Bool("mock", false, "Create dummy tasks for scheduler")
+	flag.Parse()
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := scheduler.NewScheduler()
 
-	flag.Parse()
-
-	mockFlag := flag.Bool("mock", false, "Create dummy tasks for scheduler")
 	if *mockFlag {
 		s.Tasks = scheduler.MockTasks()
 	}
